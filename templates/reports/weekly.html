@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Weekly Report{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'reports:index' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">Weekly Report</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:12px 16px;margin-bottom:12px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <a href="?week={{ prev_week }}" class="btn-sm-app ghost" style="text-decoration:none;">
+      <i class="bi bi-chevron-left"></i>
+    </a>
+    <div style="text-align:center;">
+      <div style="font-size:15px;font-weight:700;">{{ start_date|date:"d/m" }} — {{ end_date|date:"d/m/Y" }}</div>
+    </div>
+    {% if next_week is not None %}
+    <a href="?week={{ next_week }}" class="btn-sm-app ghost" style="text-decoration:none;">
+      <i class="bi bi-chevron-right"></i>
+    </a>
+    {% else %}
+    <div style="width:36px;"></div>
+    {% endif %}
+  </div>
+</div>
+
+{% include 'reports/_summary_cards.html' %}
+{% include 'reports/_bikes_table.html' %}
+{% include 'reports/_defects_breakdown.html' %}
+
+<a href="{% url 'reports:export' %}?period=weekly&week={{ week_offset }}"
+   class="btn-app ghost" style="text-decoration:none;width:100%;text-align:center;margin-bottom:16px;">
+  <i class="bi bi-download"></i> Export CSV
+</a>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}{{ process.name }}{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'assembly:process_list' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">{{ process.name }}</div>
+  <div class="header-action">
+    <a href="{% url 'assembly:process_update' process.pk %}" class="btn-sm-app ghost" style="text-decoration:none;">
+      <i class="bi bi-pencil"></i>
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <div style="font-size:13px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;">{{ process.bike_model }}</div>
+  {% if process.description %}
+  <div style="font-size:14px;color:var(--text-secondary);margin-top:6px;">{{ process.description }}</div>
+  {% endif %}
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+    <span class="badge-app blue">{{ process.steps.count }} steps</span>
+    <span class="badge-app gray">{{ process.total_estimated_minutes }} min total</span>
+    {% if process.active %}<span class="badge-app green">Active</span>{% else %}<span class="badge-app gray">Inactive</span>{% endif %}
+  </div>
+</div>
+
+<div class="section-label">Assembly Steps</div>
+<div class="card" style="margin-bottom:16px;">
+  {% for step in process.steps.all %}
+  <div class="list-row step-row" id="step-row-{{ step.pk }}">
+    <div class="row-icon" style="background:var(--accent);color:#fff;font-size:13px;font-weight:700;min-width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+      {{ step.order }}
+    </div>
+    <div class="row-body">
+      <div class="row-title">{{ step.name }}</div>
+      {% if step.description %}<div class="row-sub">{{ step.description|truncatechars:60 }}</div>{% endif %}
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+      <span class="badge-app gray" style="white-space:nowrap;">{{ step.estimated_minutes }}m</span>
+      <a href="{% url 'assembly:step_update' step.pk %}" style="color:var(--text-muted);font-size:18px;text-decoration:none;padding:4px;">
+        <i class="bi bi-pencil-square"></i>
+      </a>
+      <a href="{% url 'assembly:step_delete' step.pk %}" onclick="return confirm('Remove step «{{ step.name }}»?')"
+         style="color:var(--danger);font-size:18px;text-decoration:none;padding:4px;">
+        <i class="bi bi-trash3"></i>
+      </a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state" style="padding:28px 24px;">
+    <div class="empty-icon">📋</div>
+    <div class="empty-title">No steps yet</div>
+    <div class="empty-sub">Add the first step below</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-label">Add New Step</div>
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <form method="post" action="{% url 'assembly:step_create' process.pk %}">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 80px;gap:10px;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Step Name *</label>
+        <input type="text" name="name" class="form-control-app"
+               placeholder="e.g. Install motor" required autocomplete="off">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Order *</label>
+        <input type="number" name="order" class="form-control-app" min="1"
+               value="{{ process.steps.count|add:1 }}" required>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:10px;">
+      <label class="form-label">Description (optional)</label>
+      <textarea name="description" class="form-control-app textarea" rows="2"
+                placeholder="Instructions or details..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">⏱ Estimated Time (minutes) *</label>
+      <input type="number" name="estimated_minutes" class="form-control-app" min="1"
+             placeholder="e.g. 30" required>
+    </div>
+    <button type="submit" class="btn-app primary">
+      <i class="bi bi-plus-circle-fill"></i> Add Step
+    </button>
+  </form>
+</div>
+{% endblock %}

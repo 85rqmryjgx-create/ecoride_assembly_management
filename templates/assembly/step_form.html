@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Assembly Step{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'assembly:process_detail' process.pk %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">Step — {{ process.name }}</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  <div class="form-group">
+    <label class="form-label">Step Name</label>
+    <input type="text" name="name" class="form-control-app"
+           placeholder="e.g. Motor installation"
+           value="{{ form.name.value|default:'' }}" required>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Description (optional)</label>
+    <textarea name="description" class="form-control-app textarea" rows="2"
+              placeholder="Instructions or details...">{{ form.description.value|default:'' }}</textarea>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Order</label>
+    <input type="number" name="order" class="form-control-app" min="1"
+           value="{{ form.order.value|default:'1' }}" required>
+  </div>
+  <div class="form-group">
+    <label class="form-label">⏱ Estimated Time (minutes)</label>
+    <input type="number" name="estimated_minutes" class="form-control-app" min="0"
+           placeholder="e.g. 30"
+           value="{{ form.estimated_minutes.value|default:'' }}" required>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <button type="submit" class="btn-app primary" style="flex:1;">
+      <i class="bi bi-check-lg"></i> Save Step
+    </button>
+    <a href="{% url 'assembly:process_detail' process.pk %}" class="btn-app ghost" style="flex:1;text-decoration:none;">Cancel</a>
+  </div>
+</form>
+{% endblock %}

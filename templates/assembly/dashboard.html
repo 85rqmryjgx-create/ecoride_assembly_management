@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Ecoride Assembly{% endblock %}
+
+{% block header %}
+{% load static %}
+<div class="brand-header">
+  <a href="{% url 'accounts:logout' %}" class="logout-btn">
+    <i class="bi bi-box-arrow-right"></i>
+  </a>
+  <div class="brand-logo-center">
+    <img src="{% static 'ECORIDE_logo.png' %}?v=2" alt="Ecoride"
+         onerror="this.style.display='none';document.getElementById('dash-logo-fallback').style.display='block';">
+    <div id="dash-logo-fallback" class="brand-name" style="display:none;">Ecoride<sup>®</sup></div>
+  </div>
+  <div class="brand-subtitle">Assembly Management</div>
+  <div class="brand-user-row">
+    <div class="user-chip">
+      <i class="bi bi-person"></i>
+      {{ user.get_full_name|default:user.username }} &mdash; {{ user.get_role_display }}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if defect_alert %}
+<a href="{% url 'defects:list' %}" style="text-decoration:none;">
+  <div style="background:var(--danger);color:#fff;padding:12px 16px;border-radius:var(--radius);margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;">
+    <i class="bi bi-exclamation-triangle-fill" style="font-size:18px;flex-shrink:0;"></i>
+    <div>
+      <div>{{ stats.open_defects }} open defects — threshold exceeded ({{ defect_alert_threshold }})</div>
+      <div style="font-size:12px;font-weight:400;opacity:.85;margin-top:2px;">Tap to review open issues</div>
+    </div>
+    <i class="bi bi-chevron-right" style="margin-left:auto;font-size:14px;"></i>
+  </div>
+</a>
+{% endif %}
+
+<div class="stats-grid">
+  <a href="{% url 'assembly:session_list' %}" class="stat-card primary stat-card-link">
+    <div class="stat-value">{{ stats.sessions_today }}</div>
+    <div class="stat-label">🔧 Sessions today</div>
+  </a>
+  <a href="{% url 'defects:list' %}" class="stat-card danger stat-card-link">
+    <div class="stat-value">{{ stats.open_defects }}</div>
+    <div class="stat-label">⚠️ Open defects</div>
+  </a>
+  <a href="{% url 'assembly:session_list' %}" class="stat-card info stat-card-link">
+    <div class="stat-value">{{ stats.completed_this_week }}</div>
+    <div class="stat-label">✅ Done this week</div>
+  </a>
+  <a href="{% url 'bikes:list' %}" class="stat-card warning stat-card-link">
+    <div class="stat-value">{{ stats.bikes }}</div>
+    <div class="stat-label">🚴 Active models</div>
+  </a>
+</div>
+
+{% if user.is_lead_or_above %}
+<div class="card" style="margin-bottom:16px;padding:16px;">
+  <div class="section-label">Quick Actions</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px;">
+    <a href="{% url 'assembly:session_create' %}" class="btn-app primary" style="text-decoration:none;font-size:13px;">
+      <i class="bi bi-play-fill"></i> New Assembly
+    </a>
+    <a href="{% url 'assembly:process_list' %}" class="btn-app ghost" style="text-decoration:none;font-size:13px;">
+      <i class="bi bi-list-check"></i> Processes
+    </a>
+    <a href="{% url 'bikes:create' %}" class="btn-app ghost" style="text-decoration:none;font-size:13px;">
+      <i class="bi bi-bicycle"></i> New Bike
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<div class="section-label">Active Assemblies</div>
+<div class="card">
+  {% for s in sessions_active %}
+  <a href="{% url 'assembly:session_detail' s.pk %}" class="list-row">
+    <div class="row-icon" style="background:#F0F0F0;">🔧</div>
+    <div class="row-body">
+      <div class="row-title">
+        {{ s.bike_model }}
+        {% if s.order_number %}<span style="font-size:11px;color:var(--text-muted);font-weight:400;"> · {{ s.order_number }}</span>{% endif %}
+      </div>
+      <div class="row-sub">{{ s.process.name }} · {{ s.started_at|date:"H:i" }}</div>
+    </div>
+    <div class="row-right">
+      <span class="badge-app yellow">In Progress</span>
+    </div>
+    <i class="bi bi-chevron-right row-arrow"></i>
+  </a>
+  {% empty %}
+  <div class="empty-state" style="padding:32px;">
+    <div class="empty-icon">🔧</div>
+    <div class="empty-title">No active assemblies</div>
+    {% if user.is_lead_or_above %}
+    <div class="empty-sub">Start a new assembly session</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <a href="{% url 'assembly:session_list' %}" style="display:flex;align-items:center;justify-content:center;padding:12px;color:var(--accent);font-size:14px;font-weight:600;text-decoration:none;">
+    View all assemblies <i class="bi bi-chevron-right" style="font-size:12px;margin-left:4px;"></i>
+  </a>
+</div>
+
+<div class="section-label">Open Defects</div>
+<div class="card">
+  {% for d in recent_defects %}
+  <a href="{% url 'defects:detail' d.pk %}" class="list-row">
+    <div class="row-icon" style="background:var(--danger-light);">
+      {% if d.severity == 'critical' %}🔴{% elif d.severity == 'high' %}🟠{% elif d.severity == 'medium' %}🟡{% else %}🟢{% endif %}
+    </div>
+    <div class="row-body">
+      <div class="row-title">{{ d.get_defect_type_display }}</div>
+      <div class="row-sub">{{ d.description|truncatechars:45 }}</div>
+    </div>
+    <div class="row-right">
+      <span class="badge-app severity-{{ d.severity }}">{{ d.get_severity_display }}</span>
+    </div>
+    <i class="bi bi-chevron-right row-arrow"></i>
+  </a>
+  {% empty %}
+  <div class="empty-state" style="padding:32px;">
+    <div class="empty-icon">✅</div>
+    <div class="empty-title">No open defects</div>
+    <div class="empty-sub">All clear!</div>
+  </div>
+  {% endfor %}
+  <a href="{% url 'defects:list' %}" style="display:flex;align-items:center;justify-content:center;padding:12px;color:var(--danger);font-size:14px;font-weight:600;text-decoration:none;">
+    View all defects <i class="bi bi-chevron-right" style="font-size:12px;margin-left:4px;"></i>
+  </a>
+</div>
+{% endblock %}

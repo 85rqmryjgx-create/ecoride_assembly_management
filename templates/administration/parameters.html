@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}System Parameters — Settings{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'administration:index' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">System Parameters</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px;margin-bottom:12px;background:var(--info-light);border:1px solid #b3d4f5;">
+  <div style="font-size:13px;color:var(--info);font-weight:600;"><i class="bi bi-info-circle"></i> How parameters are used</div>
+  <div style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.6;">
+    <b>Labor Rate</b> is multiplied by repair minutes to calculate the financial cost of each defect in reports.<br>
+    <b>Alert Threshold</b> triggers a warning on the dashboard when open defects exceed the limit.
+  </div>
+</div>
+
+<div class="card" style="padding:20px;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% crispy form %}
+    <button type="submit" class="btn-app primary" style="margin-top:16px;width:100%;">
+      <i class="bi bi-floppy"></i> Save Settings
+    </button>
+  </form>
+</div>
+{% endblock %}

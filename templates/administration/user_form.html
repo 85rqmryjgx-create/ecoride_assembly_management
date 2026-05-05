@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title }} — Settings{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'administration:user_list' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">{{ title }}</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:20px;">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% crispy form %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+      <a href="{% url 'administration:user_list' %}" class="btn-app ghost" style="text-decoration:none;text-align:center;">Cancel</a>
+      <button type="submit" class="btn-app primary">Save</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

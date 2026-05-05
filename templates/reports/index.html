@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <div class="header-title">📊 Reports</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'reports:weekly' %}" style="text-decoration:none;">
+<div class="card" style="margin-bottom:10px;">
+  <div class="list-row">
+    <div class="row-icon" style="background:var(--info-light);font-size:24px;">📅</div>
+    <div class="row-body">
+      <div class="row-title">Weekly Report</div>
+      <div class="row-sub">Assemblies, defects and time per week</div>
+    </div>
+    <i class="bi bi-chevron-right row-arrow"></i>
+  </div>
+</div>
+</a>
+
+<a href="{% url 'reports:monthly' %}" style="text-decoration:none;">
+<div class="card" style="margin-bottom:10px;">
+  <div class="list-row">
+    <div class="row-icon" style="background:#F0F0F0;font-size:24px;">📆</div>
+    <div class="row-body">
+      <div class="row-title">Monthly Report</div>
+      <div class="row-sub">Full analysis with time cost breakdown</div>
+    </div>
+    <i class="bi bi-chevron-right row-arrow"></i>
+  </div>
+</div>
+</a>
+{% endblock %}

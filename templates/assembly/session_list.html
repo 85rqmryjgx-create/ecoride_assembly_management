@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Assemblies{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <div class="header-title">🔧 Assemblies</div>
+  {% if user.is_lead_or_above %}
+  <div class="header-action">
+    <a href="{% url 'assembly:session_create' %}" class="btn-sm-app primary" style="text-decoration:none;">
+      <i class="bi bi-plus-lg"></i> New
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+{% for s in sessions %}
+<a href="{% url 'assembly:session_detail' s.pk %}" style="text-decoration:none;">
+<div class="card" style="margin-bottom:10px;padding:0;">
+  <div class="list-row">
+    <div class="row-icon" style="background:{% if s.status == 'completed' %}var(--accent-light){% elif s.status == 'in_progress' %}var(--warning-light){% else %}var(--bg){% endif %};">
+      {% if s.status == 'completed' %}✅{% elif s.status == 'in_progress' %}🔧{% else %}⏸{% endif %}
+    </div>
+    <div class="row-body">
+      <div class="row-title">
+        {{ s.bike_model }}
+        {% if s.order_number %}<span style="font-size:12px;color:var(--text-muted);font-weight:400;"> · {{ s.order_number }}</span>{% endif %}
+      </div>
+      <div class="row-sub">{{ s.process.name }} · {{ s.started_at|date:"d/m H:i" }}</div>
+      {% if s.worker %}<div class="row-sub" style="margin-top:2px;">👤 {{ s.worker.get_full_name|default:s.worker.username }}</div>{% endif %}
+    </div>
+    <div class="row-right">
+      {% if s.status == 'in_progress' %}<span class="badge-app yellow">In Progress</span>
+      {% elif s.status == 'completed' %}<span class="badge-app green">Completed</span>
+      {% else %}<span class="badge-app gray">Paused</span>{% endif %}
+    </div>
+    <i class="bi bi-chevron-right row-arrow"></i>
+  </div>
+</div>
+</a>
+{% empty %}
+<div class="empty-state">
+  <div class="empty-icon">🔧</div>
+  <div class="empty-title">No assemblies yet</div>
+  {% if user.is_lead_or_above %}
+  <a href="{% url 'assembly:session_create' %}" class="btn-app primary" style="text-decoration:none;margin-top:16px;max-width:200px;margin-left:auto;margin-right:auto;">
+    <i class="bi bi-play-fill"></i> Start Assembly
+  </a>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Users — Settings{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'administration:index' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">Users</div>
+  <div class="header-action">
+    <a href="{% url 'administration:user_create' %}" class="btn-sm-app primary" style="text-decoration:none;">
+      <i class="bi bi-plus-lg"></i> New
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% regroup users by get_role_display as users_by_role %}
+{% for group in users_by_role %}
+<div class="section-label">{{ group.grouper }}</div>
+<div class="card" style="margin-bottom:12px;">
+  {% for u in group.list %}
+  <div class="list-row" style="cursor:default;">
+    <div class="row-icon" style="background:{% if u.is_supervisor %}var(--accent-light){% elif u.is_team_lead %}var(--info-light){% else %}var(--bg){% endif %};">
+      <i class="bi bi-person" style="font-size:18px;color:{% if u.is_supervisor %}var(--accent){% elif u.is_team_lead %}var(--info){% else %}var(--text-muted){% endif %};"></i>
+    </div>
+    <div class="row-body">
+      <div class="row-title" style="{% if not u.is_active %}opacity:.45;{% endif %}">
+        {{ u.get_full_name|default:u.username }}
+        {% if not u.is_active %}<span style="font-size:11px;color:var(--text-muted);font-weight:400;"> — Inactive</span>{% endif %}
+      </div>
+      <div class="row-sub">@{{ u.username }}{% if u.email %} · {{ u.email }}{% endif %}</div>
+    </div>
+    <div class="row-right" style="display:flex;gap:8px;flex-shrink:0;">
+      <a href="{% url 'administration:user_edit' u.pk %}" class="btn-sm-app ghost" style="text-decoration:none;padding:0 10px;height:32px;font-size:12px;">
+        <i class="bi bi-pencil"></i>
+      </a>
+      <a href="{% url 'administration:user_password' u.pk %}" class="btn-sm-app ghost" style="text-decoration:none;padding:0 10px;height:32px;font-size:12px;" title="Reset password">
+        <i class="bi bi-key"></i>
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% empty %}
+<div class="empty-state">
+  <div class="empty-icon">👥</div>
+  <div class="empty-title">No users found</div>
+</div>
+{% endfor %}
+{% endblock %}

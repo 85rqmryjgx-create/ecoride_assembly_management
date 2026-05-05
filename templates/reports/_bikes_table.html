@@ -1,0 +1,23 @@
+<div class="section-label">By Bike Model</div>
+<div class="card" style="margin-bottom:12px;">
+  {% for item in bikes_summary %}
+  <div class="report-row">
+    <div>
+      <div style="font-size:14px;font-weight:700;">{{ item.bike.name }}</div>
+      <div style="font-size:12px;color:var(--text-muted);">{{ item.bike.brand }}</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="rr-value">{{ item.sessions }} assemblies</div>
+      <div style="font-size:12px;color:var(--text-muted);">~{{ item.avg_minutes }} min/unit</div>
+      {% if item.defects > 0 %}
+      <span class="badge-app red">{{ item.defects }} defects</span>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="empty-state" style="padding:24px;">
+    <div class="empty-icon">📊</div>
+    <div class="empty-title">No data for this period</div>
+  </div>
+  {% endfor %}
+</div>

@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block title %}Assembly #{{ session.pk }}{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'assembly:session_list' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">
+    {{ session.bike_model }}
+    {% if session.order_number %}<span style="font-size:12px;font-weight:400;color:var(--text-muted);display:block;line-height:1.2;">Order: {{ session.order_number }}</span>{% endif %}
+  </div>
+  <div class="header-action" style="display:flex;align-items:center;gap:8px;">
+    {% if session.status == 'in_progress' %}<span class="badge-app yellow">In Progress</span>
+    {% elif session.status == 'completed' %}<span class="badge-app green">Completed</span>{% endif %}
+    {% if user.is_lead_or_above %}
+    <a href="{% url 'assembly:session_update' session.pk %}" style="width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);text-decoration:none;font-size:15px;">
+      <i class="bi bi-pencil"></i>
+    </a>
+    <a href="{% url 'assembly:session_delete' session.pk %}" style="width:32px;height:32px;border-radius:50%;background:var(--danger-light);display:flex;align-items:center;justify-content:center;color:var(--danger);text-decoration:none;font-size:15px;">
+      <i class="bi bi-trash"></i>
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+{% if session.status == 'completed' %}
+<div class="session-summary">
+  <div class="sum-title">Assembly completed</div>
+  <div class="sum-value">{{ session.total_actual_minutes }} min</div>
+  <div style="font-size:13px;opacity:.75;margin-top:4px;">
+    Estimated: {{ session.total_estimated_minutes }} min
+    {% if session.total_actual_minutes <= session.total_estimated_minutes %}· ✅ On time{% else %}· ⚠️ Over estimate{% endif %}
+  </div>
+  <div class="sum-row">
+    <div class="sum-item"><div class="sum-item-val">{{ executions|length }}</div><div class="sum-item-lbl">Steps</div></div>
+    <div class="sum-item"><div class="sum-item-val">{{ defects|length }}</div><div class="sum-item-lbl">Defects</div></div>
+    <div class="sum-item"><div class="sum-item-val">{{ session.finished_at|date:"d/m" }}</div><div class="sum-item-lbl">Date</div></div>
+  </div>
+  {% if session.order_number or session.serial_number %}
+  <div style="display:flex;gap:16px;justify-content:center;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.2);font-size:12px;opacity:.85;">
+    {% if session.order_number %}<span><b>Order:</b> {{ session.order_number }}</span>{% endif %}
+    {% if session.serial_number %}<span><b>S/N:</b> {{ session.serial_number }}</span>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="card" style="padding:16px;margin-bottom:12px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:600;color:var(--text-muted);">PROGRESS</span>
+    <span id="session-progress-label" style="font-size:13px;font-weight:700;color:var(--accent);">0 of {{ executions|length }} steps</span>
+  </div>
+  <div class="progress-bar-app">
+    <div class="progress-fill" id="session-progress-fill" style="width:0%;background:var(--accent);"></div>
+  </div>
+</div>
+{% endif %}
+
+<div class="section-label">Assembly Steps</div>
+
+{% for exec in executions %}
+<div class="step-card {% if exec.actual_minutes %}done{% endif %}">
+  <div class="step-header {% if not exec.actual_minutes and session.status == 'in_progress' %}step-header-expandable{% elif exec.actual_minutes and user.is_lead_or_above %}step-header-expandable{% endif %}">
+    <div class="step-number">
+      {% if exec.actual_minutes %}<i class="bi bi-check2"></i>{% else %}{{ exec.step.order }}{% endif %}
+    </div>
+    <div style="flex:1;">
+      <div class="step-title">{{ exec.step.name }}</div>
+      {% if exec.step.description %}<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">{{ exec.step.description }}</div>{% endif %}
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      {% if exec.actual_minutes %}
+      <span class="badge-app {% if exec.actual_minutes <= exec.step.estimated_minutes %}green{% else %}yellow{% endif %}">{{ exec.actual_minutes }} min</span>
+      {% if user.is_lead_or_above %}
+      <i class="bi bi-chevron-down step-chevron" style="font-size:14px;color:var(--text-muted);transition:transform .2s;"></i>
+      {% endif %}
+      {% else %}
+      <span style="font-size:12px;color:var(--text-muted);">~{{ exec.step.estimated_minutes }}m</span>
+      {% if session.status == 'in_progress' %}
+      <i class="bi bi-chevron-down step-chevron" style="font-size:14px;color:var(--text-muted);transition:transform .2s;"></i>
+      {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  {% if exec.actual_minutes and user.is_lead_or_above %}
+  <div class="step-body">
+    <div class="timer-container" data-execution-id="{{ exec.pk }}" data-mode="edit">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="number" class="form-control-app manual-minutes" value="{{ exec.actual_minutes }}" min="1"
+               style="height:40px;width:90px;text-align:center;padding:0 8px;flex-shrink:0;">
+        <span style="font-size:13px;color:var(--text-muted);">minutes</span>
+      </div>
+      <textarea class="form-control-app textarea step-notes" placeholder="Notes" rows="2" style="margin-top:10px;">{{ exec.notes }}</textarea>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button type="button" class="btn-app primary manual-save-btn" style="height:40px;font-size:13px;">
+          <i class="bi bi-floppy"></i> Update
+        </button>
+        <button type="button" class="btn-sm-app danger step-reset-btn" style="height:40px;padding:0 14px;" data-exec-id="{{ exec.pk }}">
+          <i class="bi bi-arrow-counterclockwise"></i> Reset
+        </button>
+      </div>
+    </div>
+  </div>
+  {% elif not exec.actual_minutes and session.status == 'in_progress' %}
+  <div class="step-body">
+    <div class="timer-container" data-execution-id="{{ exec.pk }}" data-estimated="{{ exec.step.estimated_minutes }}">
+
+      <div class="timer-display">00:00</div>
+      <div class="timer-controls">
+        <button type="button" class="btn-timer-start"><i class="bi bi-play-fill"></i> Start timer</button>
+        <button type="button" class="btn-timer-save" style="display:none;background:var(--accent);"><i class="bi bi-floppy"></i></button>
+      </div>
+      <input type="hidden" class="hidden-minutes" value="0">
+
+      <div style="display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+        <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;">Or enter minutes:</span>
+        <input type="number" class="form-control-app manual-minutes" placeholder="min" min="1"
+               style="height:40px;width:80px;text-align:center;padding:0 8px;flex-shrink:0;">
+        <button type="button" class="btn-app primary manual-save-btn" style="height:40px;font-size:13px;">
+          <i class="bi bi-floppy"></i> Save
+        </button>
+      </div>
+
+      <textarea class="form-control-app textarea step-notes" placeholder="Notes (optional)" rows="2" style="margin-top:10px;"></textarea>
+    </div>
+    {% if exec.defects.all %}
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+      {% for d in exec.defects.all %}
+      <span class="badge-app red" style="margin-right:4px;"><i class="bi bi-exclamation-triangle"></i> {{ d.get_defect_type_display }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% elif exec.notes %}
+  <div style="padding:0 16px 12px;font-size:13px;color:var(--text-muted);">{{ exec.notes }}</div>
+  {% endif %}
+</div>
+{% empty %}
+<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No steps found</div></div>
+{% endfor %}
+
+{% if session.status == 'in_progress' %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+  <a href="{% url 'defects:create_for_session' session.pk %}" class="btn-app danger" style="text-decoration:none;font-size:14px;">
+    <i class="bi bi-exclamation-triangle"></i> Log Defect
+  </a>
+  {% if user.is_lead_or_above %}
+  <button onclick="confirmFinish('{% url 'assembly:session_finish' session.pk %}')" class="btn-app success" style="font-size:14px;">
+    <i class="bi bi-check2-all"></i> Complete
+  </button>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if defects %}
+<div class="section-label" style="margin-top:16px;">Defects in this session</div>
+{% for d in defects %}
+<a href="{% url 'defects:detail' d.pk %}" class="list-row card" style="margin-bottom:8px;border-radius:var(--radius);text-decoration:none;color:inherit;">
+  <div class="row-icon" style="background:var(--danger-light);font-size:20px;">
+    {% if d.severity == 'critical' %}🔴{% elif d.severity == 'high' %}🟠{% elif d.severity == 'medium' %}🟡{% else %}🟢{% endif %}
+  </div>
+  <div class="row-body">
+    <div class="row-title">{{ d.get_defect_type_display }}</div>
+    <div class="row-sub">{{ d.description|truncatechars:50 }}</div>
+  </div>
+  <div class="row-right">
+    {% if d.is_resolved %}<span class="badge-app green">Resolved</span>
+    {% else %}<span class="badge-app red">Open</span>{% endif %}
+  </div>
+</a>
+{% endfor %}
+{% endif %}
+{% endblock %}

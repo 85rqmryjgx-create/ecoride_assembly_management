@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Bike Models{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <div class="header-title">🚴 Bike Models</div>
+  {% if user.is_lead_or_above %}
+  <div class="header-action">
+    <a href="{% url 'bikes:create' %}" class="btn-sm-app primary" style="text-decoration:none;">
+      <i class="bi bi-plus-lg"></i> New
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+{% for bike in bikes %}
+<a href="{% url 'bikes:detail' bike.pk %}" style="text-decoration:none;">
+<div class="card" style="margin-bottom:10px;">
+  <div class="list-row">
+    <div class="row-icon" style="background:#F0F0F0;font-size:22px;">🚴</div>
+    <div class="row-body">
+      <div class="row-title">{{ bike.name }}</div>
+      <div class="row-sub">{{ bike.brand }} · {{ bike.year }}</div>
+      <div class="row-sub" style="margin-top:2px;">{{ bike.components.count }} components</div>
+    </div>
+    <div class="row-right">
+      {% if bike.active %}<span class="badge-app green">Active</span>
+      {% else %}<span class="badge-app gray">Inactive</span>{% endif %}
+    </div>
+    <i class="bi bi-chevron-right row-arrow"></i>
+  </div>
+</div>
+</a>
+{% empty %}
+<div class="empty-state">
+  <div class="empty-icon">🚴</div>
+  <div class="empty-title">No bike models yet</div>
+  {% if user.is_lead_or_above %}
+  <a href="{% url 'bikes:create' %}" class="btn-app primary" style="text-decoration:none;margin-top:16px;max-width:220px;margin-left:auto;margin-right:auto;">
+    <i class="bi bi-plus-lg"></i> Add Bike Model
+  </a>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

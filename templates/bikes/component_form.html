@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Add Component{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'bikes:detail' bike.pk %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">Add Component</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:12px 16px;margin-bottom:16px;">
+  <div style="font-size:12px;color:var(--text-muted);font-weight:600;">BIKE MODEL</div>
+  <div style="font-size:15px;font-weight:700;">{{ bike }}</div>
+</div>
+<form method="post">
+  {% csrf_token %}
+  <div class="form-group">
+    <label class="form-label">Component Name</label>
+    <input type="text" name="name" class="form-control-app" placeholder="e.g. 500W rear motor"
+           value="{{ form.name.value|default:'' }}" required>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Category</label>
+    <select name="category" class="form-control-app">
+      {% for val, label in form.fields.category.choices %}
+      <option value="{{ val }}" {% if form.category.value == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Part Number (optional)</label>
+    <input type="text" name="part_number" class="form-control-app" placeholder="e.g. MTR-500-001"
+           value="{{ form.part_number.value|default:'' }}">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Quantity</label>
+    <input type="number" name="quantity" class="form-control-app" min="1"
+           value="{{ form.quantity.value|default:'1' }}" required>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Notes (optional)</label>
+    <textarea name="notes" class="form-control-app textarea" rows="2"
+              placeholder="Any notes about this component...">{{ form.notes.value|default:'' }}</textarea>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <button type="submit" class="btn-app success" style="flex:1;">
+      <i class="bi bi-plus-lg"></i> Add Component
+    </button>
+    <a href="{% url 'bikes:detail' bike.pk %}" class="btn-app ghost" style="flex:1;text-decoration:none;">Cancel</a>
+  </div>
+</form>
+{% endblock %}

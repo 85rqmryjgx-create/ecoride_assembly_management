@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}{{ bike }}{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'bikes:list' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">{{ bike.name }}</div>
+  {% if user.is_lead_or_above %}
+  <div class="header-action">
+    <a href="{% url 'bikes:update' bike.pk %}" class="btn-sm-app ghost" style="text-decoration:none;">
+      <i class="bi bi-pencil"></i> Edit
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px;margin-bottom:12px;">
+  <div style="font-size:28px;font-weight:800;">{{ bike.brand }}</div>
+  <div style="font-size:17px;color:var(--text-muted);">{{ bike.name }} · {{ bike.year }}</div>
+  {% if bike.description %}
+  <div style="font-size:14px;margin-top:10px;color:var(--text-muted);">{{ bike.description }}</div>
+  {% endif %}
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+  <div class="section-label" style="margin:0;">Components ({{ bike.components.count }})</div>
+  {% if user.is_lead_or_above %}
+  <a href="{% url 'bikes:component_create' bike.pk %}" class="btn-sm-app success" style="text-decoration:none;">
+    <i class="bi bi-plus-lg"></i> Add
+  </a>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+  {% for c in bike.components.all %}
+  <div class="list-row">
+    <div class="row-icon" style="background:var(--bg);font-size:18px;">
+      {% if c.category == 'motor' %}⚡{% elif c.category == 'battery' %}🔋{% elif c.category == 'brakes' %}🛑{% elif c.category == 'wheels' %}⚙️{% elif c.category == 'electronics' %}💡{% else %}🔩{% endif %}
+    </div>
+    <div class="row-body">
+      <div class="row-title">{{ c.name }}</div>
+      <div class="row-sub">{{ c.get_category_display }}{% if c.part_number %} · {{ c.part_number }}{% endif %}</div>
+    </div>
+    <div class="row-right">
+      <span class="badge-app gray">×{{ c.quantity }}</span>
+    </div>
+    {% if user.is_lead_or_above %}
+    <a href="{% url 'bikes:component_delete' c.pk %}" onclick="return confirm('Remove this component?')"
+       style="color:var(--danger);font-size:18px;padding:4px 0 4px 8px;text-decoration:none;">
+      <i class="bi bi-trash"></i>
+    </a>
+    {% endif %}
+  </div>
+  {% empty %}
+  <div class="empty-state" style="padding:24px;">
+    <div class="empty-icon">🔩</div>
+    <div class="empty-title">No components added</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-label">Assembly Processes</div>
+<div class="card">
+  {% for process in bike.processes.all %}
+  <a href="{% url 'assembly:process_detail' process.pk %}" class="list-row" style="text-decoration:none;color:inherit;">
+    <div class="row-icon" style="background:var(--info-light);font-size:18px;">📋</div>
+    <div class="row-body">
+      <div class="row-title">{{ process.name }}</div>
+      <div class="row-sub">{{ process.steps.count }} steps · {{ process.total_estimated_minutes }} min estimated</div>
+    </div>
+    <i class="bi bi-chevron-right row-arrow"></i>
+  </a>
+  {% empty %}
+  <div class="empty-state" style="padding:24px;">
+    <div class="empty-icon">📋</div>
+    <div class="empty-title">No processes yet</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

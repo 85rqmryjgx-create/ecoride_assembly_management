@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Defects{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <div class="header-title"><i class="bi bi-shield-exclamation"></i> Defects & Issues</div>
+  <div class="header-action">
+    <a href="{% url 'defects:create' %}" class="btn-sm-app danger" style="text-decoration:none;">
+      <i class="bi bi-plus-lg"></i> Log
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="chip-row" style="margin-bottom:16px;">
+  <a href="?status=open" class="chip {% if status_filter == 'open' %}active{% endif %}" style="text-decoration:none;">⚠️ Open</a>
+  <a href="?status=resolved" class="chip {% if status_filter == 'resolved' %}active{% endif %}" style="text-decoration:none;">✅ Resolved</a>
+  <a href="?status=all" class="chip {% if status_filter == 'all' %}active{% endif %}" style="text-decoration:none;">📋 All</a>
+</div>
+
+{% for d in defects %}
+<a href="{% url 'defects:detail' d.pk %}" style="text-decoration:none;">
+<div class="card" style="margin-bottom:10px;padding:0;">
+  <div style="display:flex;gap:12px;padding:14px 16px;align-items:flex-start;">
+    <div style="font-size:32px;flex-shrink:0;line-height:1;margin-top:2px;">
+      {% if d.severity == 'critical' %}🔴{% elif d.severity == 'high' %}🟠{% elif d.severity == 'medium' %}🟡{% else %}🟢{% endif %}
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <span style="font-size:15px;font-weight:700;">{{ d.get_defect_type_display }}</span>
+        <span class="badge-app severity-{{ d.severity }}">{{ d.get_severity_display }}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">{{ d.description|truncatechars:70 }}</div>
+      {% if d.photo %}<div style="margin-top:8px;"><img src="{{ d.photo.url }}" style="height:60px;border-radius:8px;object-fit:cover;"></div>{% endif %}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <div style="font-size:11px;color:var(--text-muted);">🚴 {{ d.session.bike_model }} · {{ d.reported_at|date:"d/m H:i" }}</div>
+        {% if d.is_resolved %}<span class="badge-app green">✅ Resolved</span>
+        {% else %}<span class="badge-app red">⚠️ Open</span>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+</a>
+{% empty %}
+<div class="empty-state">
+  <div class="empty-icon">{% if status_filter == 'open' %}✅{% else %}📋{% endif %}</div>
+  <div class="empty-title">{% if status_filter == 'open' %}No open defects{% else %}No records found{% endif %}</div>
+  {% if status_filter == 'open' %}<div class="empty-sub">All clear!</div>{% endif %}
+</div>
+{% endfor %}
+{% endblock %}

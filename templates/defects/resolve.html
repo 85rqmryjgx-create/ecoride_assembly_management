@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Resolve Defect{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'defects:detail' defect.pk %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">Resolve Defect</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <div style="display:flex;gap:10px;align-items:center;">
+    <div style="font-size:32px;">
+      {% if defect.severity == 'critical' %}🔴{% elif defect.severity == 'high' %}🟠{% elif defect.severity == 'medium' %}🟡{% else %}🟢{% endif %}
+    </div>
+    <div>
+      <div style="font-weight:700;">{{ defect.get_defect_type_display }}</div>
+      <div style="font-size:13px;color:var(--text-muted);">{{ defect.description|truncatechars:60 }}</div>
+    </div>
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="form-group">
+    <label class="form-label">How was it resolved?</label>
+    <textarea name="resolution_description" class="form-control-app textarea"
+              rows="4" placeholder="Describe how the issue was resolved..."
+              required>{{ form.resolution_description.value|default:'' }}</textarea>
+  </div>
+  <div class="form-group">
+    <label class="form-label">⏱ Time spent to resolve (minutes)</label>
+    <input type="number" name="resolution_minutes" class="form-control-app"
+           placeholder="e.g. 30" min="1"
+           value="{{ form.resolution_minutes.value|default:'' }}" required>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <button type="submit" class="btn-app success" style="flex:1;">
+      <i class="bi bi-check2-all"></i> Mark as Resolved
+    </button>
+    <a href="{% url 'defects:detail' defect.pk %}" class="btn-app ghost" style="flex:1;text-decoration:none;">Cancel</a>
+  </div>
+</form>
+{% endblock %}

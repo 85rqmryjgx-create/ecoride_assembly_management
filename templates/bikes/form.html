@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'bikes:list' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">{{ title }}</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  <div class="form-group">
+    <label class="form-label">Model Name</label>
+    <input type="text" name="name" class="form-control-app" placeholder="e.g. Urban Pro X"
+           value="{{ form.name.value|default:'' }}" required>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Brand</label>
+    <input type="text" name="brand" class="form-control-app" placeholder="e.g. Ecoride"
+           value="{{ form.brand.value|default:'' }}" required>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Year</label>
+    <input type="number" name="year" class="form-control-app" placeholder="e.g. 2025"
+           value="{{ form.year.value|default:'' }}" required>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Description (optional)</label>
+    <textarea name="description" class="form-control-app textarea" rows="3"
+              placeholder="Details about this model...">{{ form.description.value|default:'' }}</textarea>
+  </div>
+  <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+    <input type="checkbox" name="active" id="active-check"
+           {% if form.active.value != False %}checked{% endif %}
+           style="width:20px;height:20px;accent-color:var(--accent);">
+    <label for="active-check" style="font-size:15px;font-weight:500;">Active model</label>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <button type="submit" class="btn-app primary" style="flex:1;">
+      <i class="bi bi-check-lg"></i> Save
+    </button>
+    <a href="{% url 'bikes:list' %}" class="btn-app ghost" style="flex:1;text-decoration:none;">Cancel</a>
+  </div>
+</form>
+{% endblock %}

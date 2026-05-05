@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Edit Order #{{ session.pk }}{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'assembly:session_detail' session.pk %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">Edit Order #{{ session.pk }}</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px;margin-bottom:16px;">
+  <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
+    <strong>Model:</strong> {{ session.bike_model }} &nbsp;·&nbsp;
+    <strong>Process:</strong> {{ session.process.name }}
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="form-group">
+    <label class="form-label">Status</label>
+    <select name="status" class="form-control-app">
+      {% for value, label in form.fields.status.choices %}
+      <option value="{{ value }}" {% if form.status.value == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Serial Number (optional)</label>
+    <input type="text" name="serial_number" class="form-control-app"
+           placeholder="e.g. SN-2025-001"
+           value="{{ form.serial_number.value|default:'' }}">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Notes (optional)</label>
+    <textarea name="notes" class="form-control-app textarea" rows="3"
+              placeholder="Notes about this order...">{{ form.notes.value|default:'' }}</textarea>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+    <button type="submit" class="btn-app primary">
+      <i class="bi bi-floppy"></i> Save
+    </button>
+    <a href="{% url 'assembly:session_detail' session.pk %}" class="btn-app ghost" style="text-decoration:none;">
+      Cancel
+    </a>
+  </div>
+</form>
+{% endblock %}

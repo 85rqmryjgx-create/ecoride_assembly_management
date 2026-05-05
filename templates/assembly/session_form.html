@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}New Assembly{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'assembly:session_list' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">New Assembly Session</div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if not form.process.field.queryset.exists %}
+<div class="card" style="padding:20px;margin-bottom:16px;border-left:4px solid var(--warning);background:var(--warning-light);">
+  <div style="font-size:15px;font-weight:700;color:var(--warning);margin-bottom:6px;">⚠️ No Assembly Processes</div>
+  <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">You need to create at least one Assembly Process before starting a session.</div>
+  <a href="{% url 'assembly:process_create' %}" class="btn-app primary" style="text-decoration:none;font-size:14px;max-width:200px;">
+    <i class="bi bi-plus-lg"></i> Create Process
+  </a>
+</div>
+{% endif %}
+<form method="post">
+  {% csrf_token %}
+  <div class="form-group">
+    <label class="form-label">Bike Model</label>
+    <select name="bike_model" class="form-control-app" required>
+      <option value="">Select bike model...</option>
+      {% for value, label in form.bike_model.field.choices %}
+        {% if value %}<option value="{{ value }}" {% if form.bike_model.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Assembly Process</label>
+    <select name="process" class="form-control-app" required>
+      <option value="">Select process...</option>
+      {% for value, label in form.process.field.choices %}
+        {% if value %}<option value="{{ value }}" {% if form.process.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Serial Number (optional)</label>
+    <input type="text" name="serial_number" class="form-control-app"
+           placeholder="e.g. SN-2025-001"
+           value="{{ form.serial_number.value|default:'' }}">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Notes (optional)</label>
+    <textarea name="notes" class="form-control-app textarea" rows="3"
+              placeholder="Any notes about this assembly...">{{ form.notes.value|default:'' }}</textarea>
+  </div>
+  <button type="submit" class="btn-app primary">
+    <i class="bi bi-play-fill"></i> Start Assembly
+  </button>
+</form>
+{% endblock %}

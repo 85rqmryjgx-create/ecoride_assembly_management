@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Delete Order #{{ session.pk }}{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'assembly:session_detail' session.pk %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">Delete Order</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:24px;text-align:center;margin-bottom:16px;">
+  <div style="font-size:48px;margin-bottom:12px;">🗑️</div>
+  <div style="font-size:17px;font-weight:700;margin-bottom:8px;">Delete Order #{{ session.pk }}?</div>
+  <div style="font-size:14px;color:var(--text-muted);margin-bottom:4px;">
+    <strong>{{ session.bike_model }}</strong> — {{ session.process.name }}
+  </div>
+  <div style="font-size:13px;color:var(--text-muted);">
+    Started {{ session.started_at|date:"d/m/Y H:i" }}
+  </div>
+  <div style="margin-top:16px;padding:12px;background:var(--danger-light);border-radius:var(--radius-sm);">
+    <span style="font-size:13px;color:var(--danger);">⚠️ This action cannot be undone. All steps and records will be deleted.</span>
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <button type="submit" class="btn-app danger">
+      <i class="bi bi-trash"></i> Delete
+    </button>
+    <a href="{% url 'assembly:session_detail' session.pk %}" class="btn-app ghost" style="text-decoration:none;">
+      Cancel
+    </a>
+  </div>
+</form>
+{% endblock %}

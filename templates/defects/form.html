@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Log Defect{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'defects:list' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">⚠️ Log Defect</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" id="defect-form">
+  {% csrf_token %}
+
+  {% if session %}
+  <div class="card" style="padding:12px 16px;margin-bottom:16px;">
+    <div style="font-size:12px;color:var(--text-muted);font-weight:600;">LINKED SESSION</div>
+    <div style="font-size:15px;font-weight:700;margin-top:2px;">{{ session.bike_model }} — #{{ session.pk }}</div>
+    <input type="hidden" name="session" value="{{ session.pk }}">
+  </div>
+  {% else %}
+  <div class="form-group">
+    <label class="form-label">Assembly Session</label>
+    <select name="session" class="form-control-app" required>
+      <option value="">Select session...</option>
+      {% for value, label in form.session.field.choices %}
+        {% if value %}<option value="{{ value }}" {% if form.session.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+
+  <div class="form-group">
+    <label class="form-label">Issue Type</label>
+    <div class="type-grid">
+      <label class="type-option {% if form.defect_type.value == 'manufacturing' %}selected{% endif %}" data-type="manufacturing">
+        <input type="radio" name="defect_type" value="manufacturing" {% if form.defect_type.value == 'manufacturing' %}checked{% endif %}>
+        <div class="type-icon">🏭</div>
+        <span class="type-label">Manufacturing Defect</span>
+      </label>
+      <label class="type-option {% if form.defect_type.value == 'assembly' %}selected{% endif %}" data-type="assembly">
+        <input type="radio" name="defect_type" value="assembly" {% if form.defect_type.value == 'assembly' %}checked{% endif %}>
+        <div class="type-icon">🔧</div>
+        <span class="type-label">Assembly Issue</span>
+      </label>
+      <label class="type-option {% if form.defect_type.value == 'other' %}selected{% endif %}" data-type="other">
+        <input type="radio" name="defect_type" value="other" {% if form.defect_type.value == 'other' %}checked{% endif %}>
+        <div class="type-icon">📋</div>
+        <span class="type-label">Other</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Severity</label>
+    <div class="severity-grid">
+      <label class="severity-option {% if form.severity.value == 'low' %}selected{% endif %}" data-severity="low">
+        <input type="radio" name="severity" value="low" {% if form.severity.value == 'low' %}checked{% endif %}>
+        <div class="sev-icon">🟢</div><span class="sev-label">Low</span>
+      </label>
+      <label class="severity-option {% if not form.severity.value or form.severity.value == 'medium' %}selected{% endif %}" data-severity="medium">
+        <input type="radio" name="severity" value="medium" {% if not form.severity.value or form.severity.value == 'medium' %}checked{% endif %}>
+        <div class="sev-icon">🟡</div><span class="sev-label">Medium</span>
+      </label>
+      <label class="severity-option {% if form.severity.value == 'high' %}selected{% endif %}" data-severity="high">
+        <input type="radio" name="severity" value="high" {% if form.severity.value == 'high' %}checked{% endif %}>
+        <div class="sev-icon">🟠</div><span class="sev-label">High</span>
+      </label>
+      <label class="severity-option {% if form.severity.value == 'critical' %}selected{% endif %}" data-severity="critical">
+        <input type="radio" name="severity" value="critical" {% if form.severity.value == 'critical' %}checked{% endif %}>
+        <div class="sev-icon">🔴</div><span class="sev-label">Critical</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Description</label>
+    <textarea name="description" class="form-control-app textarea" rows="4"
+              placeholder="Describe the defect or issue found..." required>{{ form.description.value|default:'' }}</textarea>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Photo (optional)</label>
+    <div class="photo-upload-area" id="upload-area">
+      <input type="file" name="photo" id="photo-input" accept="image/*" capture="environment">
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">Tap to take a photo</div>
+      <div class="upload-hint">Opens your device camera directly</div>
+    </div>
+    <div id="photo-preview">
+      <img id="preview-img" src="" alt="Preview">
+      <button type="button" class="remove-photo" id="remove-photo">✕</button>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Related Step / Note (optional)</label>
+    <input type="text" name="step_note" class="form-control-app"
+           placeholder="e.g. Step 3 – handlebar alignment, rear brake, etc."
+           value="{{ form.step_note.value|default:'' }}">
+    <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Free text — describe which step or area the defect is related to.</div>
+  </div>
+
+  <button type="submit" class="btn-app danger" style="margin-top:8px;">
+    <i class="bi bi-exclamation-triangle-fill"></i> Log Defect
+  </button>
+</form>
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

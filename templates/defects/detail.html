@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Defect #{{ defect.pk }}{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'defects:list' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">Defect #{{ defect.pk }}</div>
+  <div class="header-action">
+    {% if not defect.is_resolved %}
+    <a href="{% url 'defects:resolve' defect.pk %}" class="btn-sm-app success" style="text-decoration:none;">Resolve</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:16px;margin-bottom:12px;">
+  <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
+    <div style="font-size:48px;line-height:1;">
+      {% if defect.severity == 'critical' %}🔴{% elif defect.severity == 'high' %}🟠{% elif defect.severity == 'medium' %}🟡{% else %}🟢{% endif %}
+    </div>
+    <div>
+      <div style="font-size:17px;font-weight:800;">{{ defect.get_defect_type_display }}</div>
+      <span class="badge-app severity-{{ defect.severity }}">{{ defect.get_severity_display }}</span>
+    </div>
+  </div>
+  <div style="background:var(--bg);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
+    <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">DESCRIPTION</div>
+    <div style="font-size:15px;">{{ defect.description }}</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;">
+      <div style="font-size:11px;color:var(--text-muted);font-weight:600;">BIKE</div>
+      <div style="font-size:14px;font-weight:700;margin-top:2px;">{{ defect.session.bike_model }}</div>
+    </div>
+    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;">
+      <div style="font-size:11px;color:var(--text-muted);font-weight:600;">SESSION</div>
+      <a href="{% url 'assembly:session_detail' defect.session.pk %}" style="font-size:14px;font-weight:700;color:var(--accent);display:block;margin-top:2px;">#{{ defect.session.pk }}</a>
+    </div>
+    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;">
+      <div style="font-size:11px;color:var(--text-muted);font-weight:600;">REPORTED BY</div>
+      <div style="font-size:14px;font-weight:700;margin-top:2px;">{{ defect.reported_by }}</div>
+    </div>
+    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;">
+      <div style="font-size:11px;color:var(--text-muted);font-weight:600;">DATE</div>
+      <div style="font-size:14px;font-weight:700;margin-top:2px;">{{ defect.reported_at|date:"d/m/y H:i" }}</div>
+    </div>
+  </div>
+  {% if defect.step_note %}
+  <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-top:10px;">
+    <div style="font-size:11px;color:var(--text-muted);font-weight:600;">RELATED STEP / NOTE</div>
+    <div style="font-size:14px;font-weight:700;margin-top:2px;">{{ defect.step_note }}</div>
+  </div>
+  {% endif %}
+</div>
+
+{% if defect.photo %}
+<div class="card" style="overflow:hidden;margin-bottom:12px;">
+  <div style="padding:12px 16px 8px;font-size:13px;font-weight:700;color:var(--text-muted);">📷 PHOTO</div>
+  <img src="{{ defect.photo.url }}" id="defect-photo"
+       style="width:100%;max-height:300px;object-fit:cover;cursor:zoom-in;"
+       onclick="openPhotoLightbox(this.src)">
+  <div style="padding:6px 16px 10px;font-size:11px;color:var(--text-muted);">Tap photo to expand</div>
+</div>
+
+<div id="photo-lightbox" onclick="closePhotoLightbox()"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;
+            align-items:center;justify-content:center;padding:16px;">
+  <img id="lightbox-img" src="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;">
+  <button onclick="closePhotoLightbox()"
+          style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);
+                 border:none;color:white;font-size:22px;width:40px;height:40px;
+                 border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+    ✕
+  </button>
+</div>
+{% endif %}
+
+{% block extra_js %}
+<script>
+function openPhotoLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  const lb = document.getElementById('photo-lightbox');
+  lb.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closePhotoLightbox() {
+  document.getElementById('photo-lightbox').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePhotoLightbox(); });
+</script>
+{% endblock %}
+
+{% if defect.is_resolved %}
+<div class="card" style="padding:16px;border-left:4px solid var(--accent);">
+  <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:10px;">✅ RESOLUTION</div>
+  <div style="font-size:15px;margin-bottom:12px;">{{ defect.resolution_description }}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="background:var(--accent-light);border-radius:var(--radius-sm);padding:12px;">
+      <div style="font-size:11px;font-weight:600;color:var(--accent-dark);">TIME SPENT</div>
+      <div style="font-size:20px;font-weight:800;color:var(--accent-dark);margin-top:2px;">{{ defect.resolution_minutes }} min</div>
+    </div>
+    <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;">
+      <div style="font-size:11px;color:var(--text-muted);font-weight:600;">RESOLVED BY</div>
+      <div style="font-size:13px;font-weight:700;margin-top:2px;">{{ defect.resolved_by }}</div>
+      <div style="font-size:11px;color:var(--text-muted);">{{ defect.resolved_at|date:"d/m/y H:i" }}</div>
+    </div>
+  </div>
+</div>
+{% else %}
+<a href="{% url 'defects:resolve' defect.pk %}" class="btn-app success" style="text-decoration:none;">
+  <i class="bi bi-check2-all"></i> Mark as Resolved
+</a>
+{% endif %}
+{% endblock %}

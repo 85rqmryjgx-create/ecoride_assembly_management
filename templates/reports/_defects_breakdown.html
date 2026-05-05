@@ -1,0 +1,35 @@
+<div class="section-label">Defects by Type</div>
+<div class="card" style="margin-bottom:12px;">
+  <div class="report-row">
+    <span>🏭 Manufacturing Defect</span>
+    <span class="badge-app red">{{ defects_by_type.manufacturing }}</span>
+  </div>
+  <div class="report-row">
+    <span>🔧 Assembly Issue</span>
+    <span class="badge-app yellow">{{ defects_by_type.assembly }}</span>
+  </div>
+  <div class="report-row">
+    <span>📋 Other</span>
+    <span class="badge-app gray">{{ defects_by_type.other }}</span>
+  </div>
+</div>
+
+<div class="section-label">Defects by Severity</div>
+<div class="card" style="margin-bottom:12px;">
+  <div class="report-row">
+    <span>🔴 Critical</span>
+    <span class="badge-app red">{{ defects_by_severity.critical }}</span>
+  </div>
+  <div class="report-row">
+    <span>🟠 High</span>
+    <span class="badge-app yellow">{{ defects_by_severity.high }}</span>
+  </div>
+  <div class="report-row">
+    <span>🟡 Medium</span>
+    <span class="badge-app yellow">{{ defects_by_severity.medium }}</span>
+  </div>
+  <div class="report-row">
+    <span>🟢 Low</span>
+    <span class="badge-app green">{{ defects_by_severity.low }}</span>
+  </div>
+</div>

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Remove Step{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'assembly:process_detail' object.process.pk %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">Remove Step</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:24px;text-align:center;">
+  <div style="font-size:48px;margin-bottom:12px;">🗑️</div>
+  <div style="font-size:17px;font-weight:700;margin-bottom:8px;">Remove step?</div>
+  <div style="font-size:14px;color:var(--text-muted);margin-bottom:24px;">
+    <strong>{{ object }}</strong> will be permanently removed from the process.
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:flex;gap:10px;">
+      <button type="submit" class="btn-app danger" style="flex:1;">
+        <i class="bi bi-trash"></i> Remove
+      </button>
+      <a href="{% url 'assembly:process_detail' object.process.pk %}" class="btn-app ghost" style="flex:1;text-decoration:none;">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

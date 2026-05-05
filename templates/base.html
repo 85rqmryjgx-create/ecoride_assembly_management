@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>{% block title %}Ecoride Assembly{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=2">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="app-shell">
+
+  {% block header %}{% endblock %}
+
+  <main class="app-content">
+    {% if messages %}
+      {% for message in messages %}
+      <div class="toast-msg {% if 'error' in message.tags %}error{% elif 'success' in message.tags %}success{% endif %} django-msg" style="position:relative;margin-bottom:12px;">
+        {% if 'success' in message.tags %}✅{% elif 'error' in message.tags %}❌{% else %}ℹ️{% endif %}
+        {{ message }}
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% if user.is_authenticated %}
+  {% block bottom_nav %}
+  <nav class="bottom-nav">
+    {% if user.is_supervisor %}
+    <a href="{% url 'assembly:dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-speedometer2"></i></span>
+      <span>Dashboard</span>
+    </a>
+    <a href="{% url 'assembly:session_list' %}" class="nav-item {% if 'session' in request.path and 'assembly' in request.path %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-wrench-adjustable"></i></span>
+      <span>Assembly</span>
+    </a>
+    <a href="{% url 'defects:list' %}" class="nav-item {% if request.resolver_match.app_name == 'defects' %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-shield-exclamation"></i></span>
+      <span>Issues</span>
+    </a>
+    <a href="{% url 'reports:index' %}" class="nav-item {% if request.resolver_match.app_name == 'reports' %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-bar-chart-line"></i></span>
+      <span>Reports</span>
+    </a>
+    <a href="{% url 'administration:index' %}" class="nav-item {% if request.resolver_match.app_name == 'administration' %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-gear"></i></span>
+      <span>Settings</span>
+    </a>
+    {% else %}
+    <a href="{% url 'assembly:dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-speedometer2"></i></span>
+      <span>Dashboard</span>
+    </a>
+    <a href="{% url 'assembly:session_list' %}" class="nav-item {% if 'session' in request.path and 'assembly' in request.path %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-wrench-adjustable"></i></span>
+      <span>Assembly</span>
+    </a>
+    <a href="{% url 'defects:create' %}" class="nav-item nav-fab">
+      <div class="fab-inner"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <span>Defect</span>
+    </a>
+    <a href="{% url 'defects:list' %}" class="nav-item {% if request.resolver_match.app_name == 'defects' and request.resolver_match.url_name == 'list' %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-shield-exclamation"></i></span>
+      <span>Issues</span>
+    </a>
+    <a href="{% url 'bikes:list' %}" class="nav-item {% if request.resolver_match.app_name == 'bikes' %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-bicycle"></i></span>
+      <span>Bikes</span>
+    </a>
+    {% endif %}
+  </nav>
+  {% endblock %}
+  {% endif %}
+
+</div>
+
+<div id="toast-container"></div>
+
+<script src="{% static 'js/app.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
