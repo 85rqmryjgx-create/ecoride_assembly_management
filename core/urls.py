@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
+from . import setup_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -13,4 +14,5 @@ urlpatterns = [
     path('defects/', include('defects.urls')),
     path('reports/', include('reports.urls')),
     path('settings/', include('administration.urls')),
+    path('init-setup/', setup_view.run_setup, name='setup'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
