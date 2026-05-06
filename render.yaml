@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: ecoride-assembly
+    env: python
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: SECRET_KEY
+        value: wX9#kP2@mLqZ7nRvT4$bYhCjAeUoFsGiD8NxQ3pKlMwZyBnHtVr
+      - key: DEBUG
+        value: "False"
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ecoride-db
+          property: connectionString
+
+databases:
+  - name: ecoride-db
+    plan: free
