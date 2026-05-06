@@ -39,9 +39,24 @@
     </select>
   </div>
   <div class="form-group">
+    <label class="form-label">Assigned Worker</label>
+    <select name="worker" class="form-control-app" required>
+      <option value="">Select worker...</option>
+      {% for value, label in form.worker.field.choices %}
+        {% if value %}<option value="{{ value }}" {% if form.worker.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Order Number (optional)</label>
+    <input type="text" name="order_number" class="form-control-app"
+           placeholder="e.g. ORD-2026-001"
+           value="{{ form.order_number.value|default:'' }}">
+  </div>
+  <div class="form-group">
     <label class="form-label">Serial Number (optional)</label>
     <input type="text" name="serial_number" class="form-control-app"
-           placeholder="e.g. SN-2025-001"
+           placeholder="e.g. SN-2026-001"
            value="{{ form.serial_number.value|default:'' }}">
   </div>
   <div class="form-group">
