@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
 from django.utils import timezone
+from django.db import models
 from django.db.models import Count, Sum
 from .models import AssemblyProcess, AssemblyStep, AssemblySession, StepExecution
 from .forms import ProcessForm, StepForm, SessionCreateForm, SessionEditForm, StepExecutionForm
@@ -31,22 +32,42 @@ class DashboardView(LoginRequiredMixin, View):
             resolved_at__isnull=True
         ).select_related('session__bike_model', 'reported_by')[:5]
 
+        now = timezone.now()
+        today = now.date()
+        iso = now.isocalendar()
+
+        completed_today = AssemblySession.objects.filter(
+            status=AssemblySession.STATUS_COMPLETED,
+            finished_at__date=today,
+        ).count()
+        completed_this_week = AssemblySession.objects.filter(
+            status=AssemblySession.STATUS_COMPLETED,
+            finished_at__week=iso[1],
+            finished_at__year=iso[0],
+        ).count()
+        completed_this_month = AssemblySession.objects.filter(
+            status=AssemblySession.STATUS_COMPLETED,
+            finished_at__year=today.year,
+            finished_at__month=today.month,
+        ).count()
+
         stats = {
             'sessions_today': AssemblySession.objects.filter(
-                started_at__date=timezone.now().date()
+                started_at__date=today
             ).count(),
             'open_defects': Defect.objects.filter(resolved_at__isnull=True).count(),
-            'completed_this_week': AssemblySession.objects.filter(
-                status=AssemblySession.STATUS_COMPLETED,
-                finished_at__week=timezone.now().isocalendar()[1],
-                finished_at__year=timezone.now().year,
-            ).count(),
+            'completed_this_week': completed_this_week,
             'bikes': BikeModel.objects.filter(active=True).count(),
         }
 
         app_settings = AppSettings.get()
-        open_defects_count = stats['open_defects']
-        defect_alert = open_defects_count >= app_settings.open_defect_alert_threshold
+        defect_alert = stats['open_defects'] >= app_settings.open_defect_alert_threshold
+
+        def _goal(done, target):
+            if not target:
+                return None
+            pct = min(100, round(done / target * 100))
+            return {'done': done, 'target': target, 'pct': pct, 'met': done >= target}
 
         return render(request, 'assembly/dashboard.html', {
             'sessions_active': sessions_active,
@@ -54,6 +75,9 @@ class DashboardView(LoginRequiredMixin, View):
             'stats': stats,
             'defect_alert': defect_alert,
             'defect_alert_threshold': app_settings.open_defect_alert_threshold,
+            'goal_daily': _goal(completed_today, app_settings.daily_production_target),
+            'goal_weekly': _goal(completed_this_week, app_settings.weekly_production_target),
+            'goal_monthly': _goal(completed_this_month, app_settings.monthly_production_target),
         })
 
 
@@ -148,12 +172,36 @@ class SessionListView(LoginRequiredMixin, ListView):
     model = AssemblySession
     template_name = 'assembly/session_list.html'
     context_object_name = 'sessions'
+    paginate_by = 30
 
     def get_queryset(self):
         qs = AssemblySession.objects.select_related('bike_model', 'process', 'worker')
         if self.request.user.is_worker:
             qs = qs.filter(worker=self.request.user)
+
+        status = self.request.GET.get('status', '')
+        if status in (AssemblySession.STATUS_IN_PROGRESS, AssemblySession.STATUS_COMPLETED, AssemblySession.STATUS_PAUSED):
+            qs = qs.filter(status=status)
+
+        bike = self.request.GET.get('bike', '')
+        if bike:
+            qs = qs.filter(bike_model_id=bike)
+
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                models.Q(order_number__icontains=q) |
+                models.Q(serial_number__icontains=q)
+            )
         return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['status_filter'] = self.request.GET.get('status', '')
+        ctx['bike_filter'] = self.request.GET.get('bike', '')
+        ctx['q'] = self.request.GET.get('q', '')
+        ctx['bike_models'] = BikeModel.objects.filter(active=True)
+        return ctx
 
 
 class SessionCreateView(LeadRequiredMixin, CreateView):

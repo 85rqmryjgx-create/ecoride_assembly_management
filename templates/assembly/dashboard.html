@@ -72,6 +72,58 @@
 </div>
 {% endif %}
 
+{% if goal_daily or goal_weekly or goal_monthly %}
+<div class="section-label">Production Goals</div>
+<div class="card" style="margin-bottom:12px;padding:16px;">
+
+  {% if goal_daily %}
+  <div style="margin-bottom:{% if goal_weekly or goal_monthly %}14px{% else %}0{% endif %};">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">Today</span>
+      <span style="font-size:13px;font-weight:700;color:{% if goal_daily.met %}var(--accent){% else %}var(--text-muted){% endif %};">
+        {{ goal_daily.done }} / {{ goal_daily.target }}
+        {% if goal_daily.met %} ✅{% endif %}
+      </span>
+    </div>
+    <div class="progress-bar-app">
+      <div class="progress-fill" style="width:{{ goal_daily.pct }}%;background:{% if goal_daily.met %}var(--accent){% else %}var(--info){% endif %};transition:width .4s;"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if goal_weekly %}
+  <div style="margin-bottom:{% if goal_monthly %}14px{% else %}0{% endif %};">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">This week</span>
+      <span style="font-size:13px;font-weight:700;color:{% if goal_weekly.met %}var(--accent){% else %}var(--text-muted){% endif %};">
+        {{ goal_weekly.done }} / {{ goal_weekly.target }}
+        {% if goal_weekly.met %} ✅{% endif %}
+      </span>
+    </div>
+    <div class="progress-bar-app">
+      <div class="progress-fill" style="width:{{ goal_weekly.pct }}%;background:{% if goal_weekly.met %}var(--accent){% else %}var(--warning){% endif %};transition:width .4s;"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if goal_monthly %}
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;">This month</span>
+      <span style="font-size:13px;font-weight:700;color:{% if goal_monthly.met %}var(--accent){% else %}var(--text-muted){% endif %};">
+        {{ goal_monthly.done }} / {{ goal_monthly.target }}
+        {% if goal_monthly.met %} ✅{% endif %}
+      </span>
+    </div>
+    <div class="progress-bar-app">
+      <div class="progress-fill" style="width:{{ goal_monthly.pct }}%;background:{% if goal_monthly.met %}var(--accent){% else %}var(--danger){% endif %};transition:width .4s;"></div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}
+
 <div class="section-label">Active Assemblies</div>
 <div class="card">
   {% for s in sessions_active %}

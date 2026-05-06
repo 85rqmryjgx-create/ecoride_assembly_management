@@ -65,6 +65,12 @@ class AssemblySession(models.Model):
         ordering = ['-started_at']
         verbose_name = 'Assembly Session'
         verbose_name_plural = 'Assembly Sessions'
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['started_at']),
+            models.Index(fields=['finished_at']),
+            models.Index(fields=['worker', 'status']),
+        ]
 
     def __str__(self):
         order = f' · {self.order_number}' if self.order_number else ''

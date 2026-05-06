@@ -1,5 +1,5 @@
 from django import forms
-from .models import Defect
+from .models import Defect, DefectComponent
 
 
 class DefectForm(forms.ModelForm):
@@ -13,12 +13,16 @@ class DefectForm(forms.ModelForm):
         }
         labels = {
             'step_note': 'Related Step / Note (optional)',
+            'component': 'Affected Component',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['step_note'].required = False
         self.fields['photo'].required = False
+        self.fields['component'].required = False
+        components = DefectComponent.objects.filter(active=True).values_list('code', 'name')
+        self.fields['component'].choices = [('', '— Select component —')] + list(components)
 
 
 class DefectResolveForm(forms.ModelForm):

@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from .models import AppSettings
 from .forms import UserCreateForm, UserEditForm, UserPasswordForm, AppSettingsForm
+from defects.models import DefectComponent
 
 User = get_user_model()
 
@@ -94,6 +95,59 @@ class UserPasswordView(AdminRequiredMixin, View):
             'form': form,
             'edit_user': edit_user,
         })
+
+
+class ComponentListView(AdminRequiredMixin, ListView):
+    model = DefectComponent
+    template_name = 'administration/component_list.html'
+    context_object_name = 'components'
+
+    def get_queryset(self):
+        return DefectComponent.objects.order_by('order', 'name')
+
+
+class ComponentCreateView(AdminRequiredMixin, View):
+    def get(self, request):
+        return render(request, 'administration/component_form.html', {'title': 'Add Component'})
+
+    def post(self, request):
+        name = request.POST.get('name', '').strip()
+        code = request.POST.get('code', '').strip().lower().replace(' ', '_')
+        if not name or not code:
+            messages.error(request, 'Name and code are required.')
+            return render(request, 'administration/component_form.html', {'title': 'Add Component'})
+        if DefectComponent.objects.filter(code=code).exists():
+            messages.error(request, f'A component with code "{code}" already exists.')
+            return render(request, 'administration/component_form.html', {'title': 'Add Component', 'name': name, 'code': code})
+        max_order = DefectComponent.objects.count()
+        DefectComponent.objects.create(name=name, code=code, order=max_order + 1)
+        messages.success(request, f'Component "{name}" added.')
+        return redirect('administration:component_list')
+
+
+class ComponentEditView(AdminRequiredMixin, View):
+    def get(self, request, pk):
+        component = get_object_or_404(DefectComponent, pk=pk)
+        return render(request, 'administration/component_form.html', {
+            'title': f'Edit — {component.name}',
+            'component': component,
+            'name': component.name,
+            'code': component.code,
+            'active': component.active,
+        })
+
+    def post(self, request, pk):
+        component = get_object_or_404(DefectComponent, pk=pk)
+        name = request.POST.get('name', '').strip()
+        active = request.POST.get('active') == 'on'
+        if not name:
+            messages.error(request, 'Name is required.')
+            return render(request, 'administration/component_form.html', {'title': f'Edit — {component.name}', 'component': component})
+        component.name = name
+        component.active = active
+        component.save()
+        messages.success(request, f'Component "{name}" updated.')
+        return redirect('administration:component_list')
 
 
 class ParametersView(AdminRequiredMixin, View):

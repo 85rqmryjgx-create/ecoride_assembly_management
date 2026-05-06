@@ -3,6 +3,21 @@ from django.conf import settings
 from assembly.models import AssemblySession, StepExecution
 
 
+class DefectComponent(models.Model):
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=50, unique=True)
+    active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = 'Defect Component'
+        verbose_name_plural = 'Defect Components'
+
+    def __str__(self):
+        return self.name
+
+
 class Defect(models.Model):
     TYPE_MANUFACTURING = 'manufacturing'
     TYPE_ASSEMBLY = 'assembly'
@@ -72,6 +87,13 @@ class Defect(models.Model):
         ordering = ['-reported_at']
         verbose_name = 'Defect'
         verbose_name_plural = 'Defects'
+        indexes = [
+            models.Index(fields=['reported_at']),
+            models.Index(fields=['resolved_at']),
+            models.Index(fields=['severity']),
+            models.Index(fields=['component']),
+            models.Index(fields=['session', 'resolved_at']),
+        ]
 
     def __str__(self):
         return f'{self.get_defect_type_display()} — {self.session} ({self.get_severity_display()})'

@@ -5,7 +5,9 @@ from django.urls import reverse_lazy, reverse
 from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse
-from .models import Defect
+from django.core.mail import send_mail
+from django.conf import settings as django_settings
+from .models import Defect, DefectComponent
 from .forms import DefectForm, DefectResolveForm
 from assembly.models import AssemblySession, StepExecution
 
@@ -14,6 +16,7 @@ class DefectListView(LoginRequiredMixin, ListView):
     model = Defect
     template_name = 'defects/list.html'
     context_object_name = 'defects'
+    paginate_by = 30
 
     def get_queryset(self):
         qs = Defect.objects.select_related(
@@ -24,11 +27,23 @@ class DefectListView(LoginRequiredMixin, ListView):
             qs = qs.filter(resolved_at__isnull=True)
         elif status == 'resolved':
             qs = qs.filter(resolved_at__isnull=False)
+
+        severity = self.request.GET.get('severity', '')
+        if severity in ('low', 'medium', 'high', 'critical'):
+            qs = qs.filter(severity=severity)
+
+        component = self.request.GET.get('component', '')
+        if component:
+            qs = qs.filter(component=component)
+
         return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['status_filter'] = self.request.GET.get('status', 'open')
+        ctx['severity_filter'] = self.request.GET.get('severity', '')
+        ctx['component_filter'] = self.request.GET.get('component', '')
+        ctx['components'] = DefectComponent.objects.filter(active=True)
         return ctx
 
 
@@ -57,8 +72,38 @@ class DefectCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.reported_by = self.request.user
+        response = super().form_valid(form)
         messages.success(self.request, 'Defect logged successfully.')
-        return super().form_valid(form)
+        if self.object.severity == Defect.SEVERITY_CRITICAL:
+            self._notify_supervisors(self.object)
+        return response
+
+    def _notify_supervisors(self, defect):
+        from accounts.models import User
+        supervisors = list(
+            User.objects.filter(role=User.ROLE_SUPERVISOR, is_active=True)
+            .values_list('email', flat=True)
+        )
+        supervisors = [e for e in supervisors if e]
+        if not supervisors:
+            return
+        session = defect.session
+        subject = f'[CRITICAL DEFECT] {session.bike_model} — Session #{session.pk}'
+        body = (
+            f'A critical defect has been reported.\n\n'
+            f'Bike Model : {session.bike_model}\n'
+            f'Session    : #{session.pk}'
+            + (f' · {session.order_number}' if session.order_number else '') + '\n'
+            f'Type       : {defect.get_defect_type_display()}\n'
+            f'Component  : {defect.component or "—"}\n'
+            f'Reported by: {defect.reported_by}\n\n'
+            f'Description:\n{defect.description}\n\n'
+            f'Please log in to review and resolve this defect immediately.'
+        )
+        try:
+            send_mail(subject, body, django_settings.DEFAULT_FROM_EMAIL, supervisors, fail_silently=True)
+        except Exception:
+            pass
 
     def get_success_url(self):
         if self.object.session:

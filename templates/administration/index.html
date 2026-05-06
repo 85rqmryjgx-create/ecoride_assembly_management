@@ -32,11 +32,21 @@
     <i class="bi bi-chevron-right row-arrow"></i>
   </a>
 
+  <a href="{% url 'administration:component_list' %}" class="list-row">
+    <div class="row-icon" style="background:var(--warning-light);font-size:20px;">🧩</div>
+    <div class="row-body">
+      <div class="row-title">Defect Components</div>
+      <div class="row-sub">Manage the components available when logging defects</div>
+    </div>
+    <i class="bi bi-chevron-right row-arrow"></i>
+  </a>
+
   <a href="{% url 'administration:parameters' %}" class="list-row">
     <div class="row-icon" style="background:var(--accent-light);font-size:20px;">⚙️</div>
     <div class="row-body">
       <div class="row-title">System Parameters</div>
-      <div class="row-sub">Labor rate: €{{ settings.labor_rate_per_hour }}/h · Alert threshold: {{ settings.open_defect_alert_threshold }} defects</div>
+      <div class="row-sub">Labor rate: Kr{{ settings.labor_rate_per_hour }}/h · Alert: {{ settings.open_defect_alert_threshold }} defects</div>
+      <div class="row-sub" style="margin-top:2px;">Goals: {{ settings.daily_production_target }}/day · {{ settings.weekly_production_target }}/week · {{ settings.monthly_production_target }}/month</div>
     </div>
     <i class="bi bi-chevron-right row-arrow"></i>
   </a>

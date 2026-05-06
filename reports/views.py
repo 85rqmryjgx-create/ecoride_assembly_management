@@ -8,12 +8,14 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils import timezone
 from django.http import HttpResponse
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, Avg, FloatField
+from django.db.models.functions import Coalesce
 
 from assembly.models import AssemblySession, StepExecution
-from defects.models import Defect
+from defects.models import Defect, DefectComponent
 from bikes.models import BikeModel
 from administration.models import AppSettings
+from accounts.models import User
 
 
 class SupervisorRequiredMixin(LoginRequiredMixin):
@@ -150,7 +152,7 @@ class ReportExportCSVView(SupervisorRequiredMixin, View):
 
         writer.writerow(['ECORIDE ASSEMBLY REPORT'])
         writer.writerow([f'Period: {start_date} to {end_date}'])
-        writer.writerow([f'Labor Rate: €{data["labor_rate"]}/h'])
+        writer.writerow([f'Labor Rate: Kr{data["labor_rate"]}/h'])
         writer.writerow([])
 
         writer.writerow(['SUMMARY'])
@@ -160,9 +162,9 @@ class ReportExportCSVView(SupervisorRequiredMixin, View):
         writer.writerow(['Total Defects', data['total_defects']])
         writer.writerow(['Open Defects', data['open_defects']])
         writer.writerow(['Repair Minutes', data['total_resolution_minutes']])
-        writer.writerow(['Assembly Labor Cost (€)', data['assembly_labor_cost']])
-        writer.writerow(['Defect Repair Cost (€)', data['defect_repair_cost']])
-        writer.writerow(['Cost per Unit (€)', data['cost_per_unit']])
+        writer.writerow(['Assembly Labor Cost (Kr)', data['assembly_labor_cost']])
+        writer.writerow(['Defect Repair Cost (Kr)', data['defect_repair_cost']])
+        writer.writerow(['Cost per Unit (Kr)', data['cost_per_unit']])
         writer.writerow(['Defect Rate (defects/unit)', data['defect_rate']])
         writer.writerow([])
 
@@ -181,7 +183,7 @@ class ReportExportCSVView(SupervisorRequiredMixin, View):
 
         if data['component_costs']:
             writer.writerow(['COST BY COMPONENT'])
-            writer.writerow(['Component', 'Occurrences', 'Repair Cost (€)'])
+            writer.writerow(['Component', 'Occurrences', 'Repair Cost (Kr)'])
             for item in data['component_costs']:
                 writer.writerow([item['component'], item['count'], item['cost']])
             writer.writerow([])
@@ -192,6 +194,232 @@ class ReportExportCSVView(SupervisorRequiredMixin, View):
             writer.writerow([str(b['bike']), b['sessions'], b['avg_minutes'], b['defects']])
 
         return response
+
+
+def _generate_recommendations(defects, total, resolved, component_stats, type_stats, severity_stats, bike_stats, labor_rate):
+    recs = []
+    if total == 0:
+        return recs
+
+    open_count = total - resolved
+    open_rate = open_count / total
+
+    if open_rate > 0.3:
+        recs.append({
+            'level': 'critical',
+            'icon': '🔴',
+            'title': 'High unresolved defect rate',
+            'body': f'{round(open_rate*100)}% of defects ({open_count}) are still open. Escalate the resolution process immediately.',
+        })
+
+    for s in severity_stats:
+        if s['severity'] in ('critical', 'high') and s['count'] / total > 0.25:
+            recs.append({
+                'level': 'high',
+                'icon': '🟠',
+                'title': f'Elevated {s["severity"]} severity defects',
+                'body': f'{s["count"]} {s["severity"]}-severity defects represent {round(s["count"]/total*100)}% of all issues. Immediate quality review recommended.',
+            })
+            break
+
+    for s in type_stats:
+        if s['count'] / total > 0.5:
+            if s['defect_type'] == 'manufacturing':
+                recs.append({
+                    'level': 'high',
+                    'icon': '🏭',
+                    'title': 'Manufacturing defects dominate',
+                    'body': f'{s["count"]} manufacturing defects ({round(s["count"]/total*100)}% of total). Consider a supplier quality audit or incoming inspection.',
+                })
+            elif s['defect_type'] == 'assembly':
+                recs.append({
+                    'level': 'medium',
+                    'icon': '🔧',
+                    'title': 'Assembly issues dominate',
+                    'body': f'{s["count"]} assembly defects ({round(s["count"]/total*100)}% of total). Review process instructions and consider targeted worker training.',
+                })
+
+    for s in component_stats[:3]:
+        if s['count'] >= 3:
+            cost = round((s.get('repair_minutes') or 0) / 60 * labor_rate, 2)
+            if s['component'] in ('motor', 'battery', 'electronics'):
+                recs.append({
+                    'level': 'high',
+                    'icon': '⚡',
+                    'title': f'Recurring {s["component"]} failures',
+                    'body': f'{s["count"]} {s["component"]} defects — Kr {cost} in repair cost. Verify supplier specs and incoming component testing.',
+                })
+            elif s['component'] in ('brakes', 'frame'):
+                recs.append({
+                    'level': 'critical',
+                    'icon': '⚠️',
+                    'title': f'Safety-critical component failing: {s["component"]}',
+                    'body': f'{s["count"]} {s["component"]} defects detected. This is a safety-critical component — immediate inspection of all units recommended.',
+                })
+            else:
+                recs.append({
+                    'level': 'medium',
+                    'icon': '🔁',
+                    'title': f'Repeated {s["component"]} defects',
+                    'body': f'{s["count"]} occurrences — Kr {cost} in repair cost. Consider a targeted process improvement for this component.',
+                })
+
+    for s in bike_stats[:1]:
+        if total >= 5 and s['count'] / total > 0.4:
+            recs.append({
+                'level': 'medium',
+                'icon': '🚴',
+                'title': f'Model "{s["bike"]}" generating most defects',
+                'body': f'{s["count"]} of {total} defects ({round(s["count"]/total*100)}%) occur on this model. Review its assembly process and component specifications.',
+            })
+
+    if not recs:
+        recs.append({
+            'level': 'good',
+            'icon': '✅',
+            'title': 'No critical patterns detected',
+            'body': 'Defect levels and distribution are within acceptable range for this period. Continue monitoring.',
+        })
+
+    return recs
+
+
+class DefectAnalysisView(SupervisorRequiredMixin, View):
+    def get(self, request):
+        days = int(request.GET.get('days', 30))
+        end_date = timezone.now().date()
+        start_date = end_date - datetime.timedelta(days=days - 1)
+        labor_rate = float(AppSettings.get().labor_rate_per_hour)
+
+        defects = Defect.objects.filter(
+            reported_at__date__gte=start_date,
+            reported_at__date__lte=end_date,
+        ).select_related('session__bike_model', 'reported_by')
+
+        total = defects.count()
+        resolved = defects.filter(resolved_at__isnull=False).count()
+
+        avg_repair = defects.filter(
+            resolved_at__isnull=False, resolution_minutes__isnull=False
+        ).aggregate(avg=Sum('resolution_minutes'))['avg'] or 0
+        avg_repair_min = round(avg_repair / resolved, 1) if resolved else 0
+
+        component_stats = []
+        for comp in DefectComponent.objects.filter(active=True):
+            group = defects.filter(component=comp.code)
+            count = group.count()
+            if count:
+                minutes = group.filter(resolved_at__isnull=False).aggregate(
+                    total=Sum('resolution_minutes'))['total'] or 0
+                component_stats.append({
+                    'component': comp.name,
+                    'code': comp.code,
+                    'count': count,
+                    'repair_minutes': minutes,
+                    'cost': round(minutes / 60 * labor_rate, 2),
+                    'pct': round(count / total * 100) if total else 0,
+                })
+        component_stats.sort(key=lambda x: x['count'], reverse=True)
+
+        type_stats = list(defects.values('defect_type').annotate(count=Count('id')).order_by('-count'))
+        severity_stats = list(defects.values('severity').annotate(count=Count('id')).order_by('-count'))
+
+        bike_stats = []
+        for row in defects.values('session__bike_model__id', 'session__bike_model__brand', 'session__bike_model__name').annotate(count=Count('id')).order_by('-count')[:5]:
+            bike_stats.append({
+                'bike': f"{row['session__bike_model__brand']} {row['session__bike_model__name']}",
+                'count': row['count'],
+            })
+
+        recommendations = _generate_recommendations(
+            defects, total, resolved, component_stats, type_stats, severity_stats, bike_stats, labor_rate
+        )
+
+        total_repair_cost = round(sum(c['cost'] for c in component_stats), 2)
+
+        return render(request, 'reports/defect_analysis.html', {
+            'days': days,
+            'start_date': start_date,
+            'end_date': end_date,
+            'total': total,
+            'resolved': resolved,
+            'open': total - resolved,
+            'avg_repair_min': avg_repair_min,
+            'total_repair_cost': total_repair_cost,
+            'labor_rate': labor_rate,
+            'component_stats': component_stats,
+            'type_stats': type_stats,
+            'severity_stats': severity_stats,
+            'bike_stats': bike_stats,
+            'recommendations': recommendations,
+        })
+
+
+class WorkerPerformanceView(LoginRequiredMixin, View):
+    def get(self, request):
+        if not request.user.is_lead_or_above:
+            messages.error(request, 'Access restricted to Team Leads and Supervisors.')
+            return redirect('assembly:dashboard')
+
+        days = int(request.GET.get('days', 30))
+        end_date = timezone.now().date()
+        start_date = end_date - datetime.timedelta(days=days - 1)
+
+        workers = User.objects.filter(is_active=True).order_by('first_name', 'last_name', 'username')
+
+        labor_rate = float(AppSettings.get().labor_rate_per_hour)
+        performance = []
+
+        for worker in workers:
+            sessions = AssemblySession.objects.filter(
+                worker=worker,
+                started_at__date__gte=start_date,
+                started_at__date__lte=end_date,
+            )
+            total = sessions.count()
+            completed = sessions.filter(status=AssemblySession.STATUS_COMPLETED).count()
+
+            total_minutes = StepExecution.objects.filter(
+                session__in=sessions,
+                actual_minutes__isnull=False,
+            ).aggregate(total=Sum('actual_minutes'))['total'] or 0
+
+            avg_minutes = round(total_minutes / completed, 1) if completed else 0
+
+            defects_reported = Defect.objects.filter(
+                reported_by=worker,
+                reported_at__date__gte=start_date,
+                reported_at__date__lte=end_date,
+            ).count()
+
+            open_defects = Defect.objects.filter(
+                session__in=sessions,
+                resolved_at__isnull=True,
+            ).count()
+
+            defect_rate = round(defects_reported / total, 2) if total else 0
+            labor_cost = round((total_minutes / 60) * labor_rate, 2)
+
+            if total > 0:
+                performance.append({
+                    'worker': worker,
+                    'total_sessions': total,
+                    'completed': completed,
+                    'avg_minutes': avg_minutes,
+                    'defects_reported': defects_reported,
+                    'open_defects': open_defects,
+                    'defect_rate': defect_rate,
+                    'labor_cost': labor_cost,
+                })
+
+        performance.sort(key=lambda x: x['completed'], reverse=True)
+
+        return render(request, 'reports/worker_performance.html', {
+            'days': days,
+            'start_date': start_date,
+            'end_date': end_date,
+            'performance': performance,
+        })
 
 
 class WeeklyReportView(SupervisorRequiredMixin, View):

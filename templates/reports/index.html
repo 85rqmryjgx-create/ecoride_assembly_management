@@ -33,4 +33,30 @@
   </div>
 </div>
 </a>
+
+<a href="{% url 'reports:defect_analysis' %}" style="text-decoration:none;">
+<div class="card" style="margin-bottom:10px;">
+  <div class="list-row">
+    <div class="row-icon" style="background:var(--danger-light);font-size:24px;">🔬</div>
+    <div class="row-body">
+      <div class="row-title">Defect Analysis</div>
+      <div class="row-sub">Frequency ranking, cost by component and recommendations</div>
+    </div>
+    <i class="bi bi-chevron-right row-arrow"></i>
+  </div>
+</div>
+</a>
+
+<a href="{% url 'reports:worker_performance' %}" style="text-decoration:none;">
+<div class="card" style="margin-bottom:10px;">
+  <div class="list-row">
+    <div class="row-icon" style="background:var(--accent-light);font-size:24px;">👥</div>
+    <div class="row-body">
+      <div class="row-title">Worker Performance</div>
+      <div class="row-sub">Sessions, avg time, defects and labor cost per worker</div>
+    </div>
+    <i class="bi bi-chevron-right row-arrow"></i>
+  </div>
+</div>
+</a>
 {% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Defect Analysis{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'reports:index' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">Defect Analysis</div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="card" style="padding:12px 16px;margin-bottom:12px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span style="font-size:13px;color:var(--text-muted);">{{ start_date|date:"d/m/Y" }} — {{ end_date|date:"d/m/Y" }}</span>
+    <div style="display:flex;gap:6px;">
+      <a href="?days=7"  class="btn-sm-app {% if days == 7  %}primary{% else %}ghost{% endif %}" style="text-decoration:none;font-size:12px;padding:0 10px;height:30px;">7d</a>
+      <a href="?days=30" class="btn-sm-app {% if days == 30 %}primary{% else %}ghost{% endif %}" style="text-decoration:none;font-size:12px;padding:0 10px;height:30px;">30d</a>
+      <a href="?days=90" class="btn-sm-app {% if days == 90 %}primary{% else %}ghost{% endif %}" style="text-decoration:none;font-size:12px;padding:0 10px;height:30px;">90d</a>
+    </div>
+  </div>
+</div>
+
+<div class="stats-grid" style="margin-bottom:12px;">
+  <div class="stat-card danger">
+    <div class="stat-value">{{ total }}</div>
+    <div class="stat-label">Total Defects</div>
+  </div>
+  <div class="stat-card {% if open > 0 %}warning{% else %}primary{% endif %}">
+    <div class="stat-value">{{ open }}</div>
+    <div class="stat-label">Open</div>
+  </div>
+  <div class="stat-card info">
+    <div class="stat-value">{{ avg_repair_min }}</div>
+    <div class="stat-label">Avg repair (min)</div>
+  </div>
+  <div class="stat-card warning">
+    <div class="stat-value">Kr {{ total_repair_cost }}</div>
+    <div class="stat-label">Total repair cost</div>
+  </div>
+</div>
+
+{% if recommendations %}
+<div class="section-label">Recommendations</div>
+{% for r in recommendations %}
+<div class="card" style="margin-bottom:8px;padding:14px 16px;border-left:4px solid
+  {% if r.level == 'critical' %}var(--danger)
+  {% elif r.level == 'high' %}var(--warning)
+  {% elif r.level == 'good' %}var(--accent)
+  {% else %}var(--info){% endif %};">
+  <div style="display:flex;align-items:flex-start;gap:10px;">
+    <span style="font-size:20px;flex-shrink:0;">{{ r.icon }}</span>
+    <div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:3px;">{{ r.title }}</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">{{ r.body }}</div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if component_stats %}
+<div class="section-label" style="margin-top:16px;">By Component — frequency & cost</div>
+<div class="card" style="margin-bottom:12px;">
+  {% for c in component_stats %}
+  <div style="padding:12px 16px;{% if not forloop.last %}border-bottom:1px solid var(--border);{% endif %}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:14px;font-weight:600;">{{ c.component }}</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="badge-app red">{{ c.count }}x</span>
+        <span style="font-size:13px;font-weight:600;color:var(--danger);">Kr {{ c.cost }}</span>
+      </div>
+    </div>
+    <div class="progress-bar-app">
+      <div class="progress-fill" style="width:{{ c.pct }}%;background:var(--danger);"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">{{ c.pct }}% of all defects · {{ c.repair_minutes }} min repair</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if bike_stats %}
+<div class="section-label">By Bike Model</div>
+<div class="card" style="margin-bottom:12px;">
+  {% for b in bike_stats %}
+  <div class="report-row">
+    <span>{{ b.bike }}</span>
+    <span class="badge-app {% if forloop.first %}red{% else %}yellow{% endif %}">{{ b.count }} defects</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="section-label">By Type</div>
+<div class="card" style="margin-bottom:12px;">
+  {% for t in type_stats %}
+  <div class="report-row">
+    <span>
+      {% if t.defect_type == 'manufacturing' %}🏭 Manufacturing
+      {% elif t.defect_type == 'assembly' %}🔧 Assembly
+      {% else %}📋 Other{% endif %}
+    </span>
+    <span class="badge-app {% if forloop.first %}red{% else %}gray{% endif %}">{{ t.count }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="section-label">By Severity</div>
+<div class="card" style="margin-bottom:24px;">
+  {% for s in severity_stats %}
+  <div class="report-row">
+    <span>
+      {% if s.severity == 'critical' %}🔴 Critical
+      {% elif s.severity == 'high' %}🟠 High
+      {% elif s.severity == 'medium' %}🟡 Medium
+      {% else %}🟢 Low{% endif %}
+    </span>
+    <span class="badge-app severity-{{ s.severity }}">{{ s.count }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+{% if total == 0 %}
+<div class="empty-state">
+  <div class="empty-icon">✅</div>
+  <div class="empty-title">No defects in this period</div>
+  <div class="empty-sub">Select a wider date range to see data</div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -13,11 +13,37 @@
 {% endblock %}
 
 {% block content %}
-<div class="chip-row" style="margin-bottom:16px;">
-  <a href="?status=open" class="chip {% if status_filter == 'open' %}active{% endif %}" style="text-decoration:none;">⚠️ Open</a>
-  <a href="?status=resolved" class="chip {% if status_filter == 'resolved' %}active{% endif %}" style="text-decoration:none;">✅ Resolved</a>
-  <a href="?status=all" class="chip {% if status_filter == 'all' %}active{% endif %}" style="text-decoration:none;">📋 All</a>
+<div class="chip-row" style="margin-bottom:12px;">
+  <a href="?status=open{% if severity_filter %}&severity={{ severity_filter }}{% endif %}{% if component_filter %}&component={{ component_filter }}{% endif %}"
+     class="chip {% if status_filter == 'open' %}active{% endif %}" style="text-decoration:none;">⚠️ Open</a>
+  <a href="?status=resolved{% if severity_filter %}&severity={{ severity_filter }}{% endif %}{% if component_filter %}&component={{ component_filter }}{% endif %}"
+     class="chip {% if status_filter == 'resolved' %}active{% endif %}" style="text-decoration:none;">✅ Resolved</a>
+  <a href="?status=all{% if severity_filter %}&severity={{ severity_filter }}{% endif %}{% if component_filter %}&component={{ component_filter }}{% endif %}"
+     class="chip {% if status_filter == 'all' %}active{% endif %}" style="text-decoration:none;">📋 All</a>
 </div>
+
+<form method="get" style="margin-bottom:14px;">
+  <input type="hidden" name="status" value="{{ status_filter }}">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <select name="severity" style="padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;">
+      <option value="">All severities</option>
+      <option value="critical" {% if severity_filter == 'critical' %}selected{% endif %}>🔴 Critical</option>
+      <option value="high" {% if severity_filter == 'high' %}selected{% endif %}>🟠 High</option>
+      <option value="medium" {% if severity_filter == 'medium' %}selected{% endif %}>🟡 Medium</option>
+      <option value="low" {% if severity_filter == 'low' %}selected{% endif %}>🟢 Low</option>
+    </select>
+    <select name="component" style="padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;">
+      <option value="">All components</option>
+      {% for c in components %}
+      <option value="{{ c.code }}" {% if component_filter == c.code %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn-sm-app primary">Filter</button>
+    {% if severity_filter or component_filter %}
+    <a href="?status={{ status_filter }}" class="btn-sm-app" style="text-decoration:none;">Clear</a>
+    {% endif %}
+  </div>
+</form>
 
 {% for d in defects %}
 <a href="{% url 'defects:detail' d.pk %}" style="text-decoration:none;">
@@ -44,9 +70,16 @@
 </a>
 {% empty %}
 <div class="empty-state">
-  <div class="empty-icon">{% if status_filter == 'open' %}✅{% else %}📋{% endif %}</div>
-  <div class="empty-title">{% if status_filter == 'open' %}No open defects{% else %}No records found{% endif %}</div>
-  {% if status_filter == 'open' %}<div class="empty-sub">All clear!</div>{% endif %}
+  <div class="empty-icon">{% if status_filter == 'open' and not severity_filter and not component_filter %}✅{% else %}📋{% endif %}</div>
+  <div class="empty-title">
+    {% if status_filter == 'open' and not severity_filter and not component_filter %}No open defects
+    {% else %}No records found{% endif %}
+  </div>
+  {% if status_filter == 'open' and not severity_filter and not component_filter %}<div class="empty-sub">All clear!</div>{% endif %}
+  {% if severity_filter or component_filter %}
+  <a href="?status={{ status_filter }}" class="btn-app primary" style="text-decoration:none;margin-top:16px;max-width:200px;margin-left:auto;margin-right:auto;">Clear filters</a>
+  {% endif %}
 </div>
 {% endfor %}
+{% include '_pagination.html' %}
 {% endblock %}
