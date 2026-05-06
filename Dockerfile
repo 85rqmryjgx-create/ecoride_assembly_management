@@ -10,6 +10,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+ENV PORT=8080
+ENV PYTHONUNBUFFERED=1
+
 RUN python manage.py collectstatic --noinput
 
-CMD python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+EXPOSE 8080
+
+CMD python manage.py migrate && exec gunicorn core.wsgi:application --bind 0.0.0.0:8080 --workers 2 --timeout 120 --access-logfile - --error-logfile -
