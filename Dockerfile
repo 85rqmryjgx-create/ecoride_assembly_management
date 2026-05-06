@@ -10,9 +10,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-COPY start.sh .
-RUN chmod +x start.sh
+EXPOSE 8080
 
-EXPOSE 8000
-
-CMD ["./start.sh"]
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120 --access-logfile - --error-logfile -"]
