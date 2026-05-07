@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Unit #{{ unit.unit_number }}{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'assembly:order_detail' order.pk %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">{{ order.order_number }} — Unit #{{ unit.unit_number }}</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:14px;padding:12px 14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <div style="font-size:13px;color:var(--text-muted);">{{ order.bike_model }}</div>
+      {% if unit.serial_number %}<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">S/N: {{ unit.serial_number }}</div>{% endif %}
+    </div>
+    {% if unit.is_complete %}
+    <span class="badge-app green">✅ Completed</span>
+    {% else %}
+    <span class="badge-app yellow">In Progress</span>
+    {% endif %}
+  </div>
+</div>
+
+<div style="font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Processes</div>
+
+{% for session in sessions %}
+<a href="{% url 'assembly:session_detail' session.pk %}" style="text-decoration:none;">
+<div class="card" style="margin-bottom:8px;padding:12px 14px;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="font-size:22px;">{% if session.status == 'completed' %}✅{% elif session.status == 'in_progress' %}🔧{% else %}⏸{% endif %}</div>
+    <div style="flex:1;">
+      <div style="font-weight:700;font-size:14px;">{{ session.process.name }}</div>
+      <div style="font-size:12px;color:var(--text-muted);">
+        👤 {{ session.worker.get_full_name|default:session.worker.username }}
+        {% if session.total_actual_minutes %} · {{ session.total_actual_minutes }} min{% endif %}
+      </div>
+    </div>
+    <span class="badge-app {% if session.status == 'completed' %}green{% elif session.status == 'in_progress' %}yellow{% else %}gray{% endif %}">
+      {{ session.get_status_display }}
+    </span>
+  </div>
+</div>
+</a>
+{% empty %}
+<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">No processes started yet.</div>
+{% endfor %}
+
+{% if user.is_lead_or_above and not unit.is_complete %}
+  {% if available_processes %}
+  <div style="font-size:13px;font-weight:700;color:var(--text-muted);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px;">Add Process</div>
+  <div class="card" style="padding:14px;">
+    <form method="post" action="{% url 'assembly:unit_add_session' order.pk unit.pk %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Process</label>
+        <select name="process_id" class="form-control-app" required>
+          <option value="">Select process...</option>
+          {% for p in available_processes %}
+          <option value="{{ p.pk }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assign Worker</label>
+        <select name="worker_id" class="form-control-app" required>
+          <option value="">Select worker...</option>
+          {% for w in workers %}
+          <option value="{{ w.pk }}">{{ w.get_full_name|default:w.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn-app primary"><i class="bi bi-plus-lg"></i> Start Process</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div style="margin-top:16px;">
+    <form method="post" action="{% url 'assembly:unit_complete' order.pk unit.pk %}"
+          onsubmit="return confirm('Mark Unit #{{ unit.unit_number }} as completed?')">
+      {% csrf_token %}
+      <button type="submit" class="btn-app" style="background:var(--accent);color:#fff;width:100%;">
+        <i class="bi bi-check-circle-fill"></i> Mark Unit as Completed
+      </button>
+    </form>
+  </div>
+{% endif %}
+{% endblock %}

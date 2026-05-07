@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Production Orders{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <div class="header-title"><i class="bi bi-clipboard2-check"></i> Production Orders</div>
+  {% if user.is_lead_or_above %}
+  <div class="header-action">
+    <a href="{% url 'assembly:order_create' %}" class="btn-sm-app primary" style="text-decoration:none;">
+      <i class="bi bi-plus-lg"></i> New
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+{% for order in orders %}
+<a href="{% url 'assembly:order_detail' order.pk %}" style="text-decoration:none;">
+<div class="card" style="margin-bottom:12px;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+    <div>
+      <div style="font-weight:700;font-size:15px;">{{ order.order_number }}</div>
+      <div style="font-size:13px;color:var(--text-muted);">{{ order.bike_model }}</div>
+    </div>
+    <span class="badge-app {% if order.status == 'completed' %}green{% elif order.status == 'in_progress' %}yellow{% elif order.status == 'cancelled' %}gray{% else %}blue{% endif %}">
+      {{ order.get_status_display }}
+    </span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <div style="flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;">
+      <div style="height:100%;width:{{ order.progress_pct }}%;background:{% if order.progress_pct == 100 %}var(--accent){% else %}var(--warning){% endif %};border-radius:4px;transition:width .3s;"></div>
+    </div>
+    <span style="font-size:12px;font-weight:700;color:var(--text-muted);white-space:nowrap;">{{ order.completed_units }}/{{ order.quantity }}</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
+    <span>{{ order.remaining }} remaining</span>
+    {% if order.target_date %}<span>Target: {{ order.target_date|date:"d/m/Y" }}</span>{% endif %}
+  </div>
+</div>
+</a>
+{% empty %}
+<div class="empty-state">
+  <div class="empty-icon"><i class="bi bi-clipboard2-check" style="font-size:48px;"></i></div>
+  <div class="empty-title">No production orders yet</div>
+  {% if user.is_lead_or_above %}
+  <a href="{% url 'assembly:order_create' %}" class="btn-app primary" style="text-decoration:none;margin-top:16px;max-width:200px;margin-left:auto;margin-right:auto;">
+    <i class="bi bi-plus-lg"></i> Create Order
+  </a>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

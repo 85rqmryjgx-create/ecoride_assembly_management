@@ -21,4 +21,10 @@ urlpatterns = [
     path('executions/<int:pk>/save/', views.StepExecutionSaveView.as_view(), name='execution_save'),
     path('executions/<int:pk>/update/', views.StepExecutionUpdateView.as_view(), name='execution_update'),
     path('executions/<int:pk>/reset/', views.StepExecutionResetView.as_view(), name='execution_reset'),
+    path('orders/', views.ProductionOrderListView.as_view(), name='order_list'),
+    path('orders/new/', views.ProductionOrderCreateView.as_view(), name='order_create'),
+    path('orders/<int:pk>/', views.ProductionOrderDetailView.as_view(), name='order_detail'),
+    path('orders/<int:order_pk>/units/<int:unit_pk>/', views.OrderUnitDetailView.as_view(), name='unit_detail'),
+    path('orders/<int:order_pk>/units/<int:unit_pk>/add-session/', views.OrderUnitAddSessionView.as_view(), name='unit_add_session'),
+    path('orders/<int:order_pk>/units/<int:unit_pk>/complete/', views.OrderUnitCompleteView.as_view(), name='unit_complete'),
 ]

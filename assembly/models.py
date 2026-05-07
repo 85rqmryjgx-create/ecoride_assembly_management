@@ -3,6 +3,80 @@ from django.conf import settings
 from bikes.models import BikeModel
 
 
+class ProductionOrder(models.Model):
+    STATUS_OPEN = 'open'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_COMPLETED = 'completed'
+    STATUS_CANCELLED = 'cancelled'
+
+    STATUS_CHOICES = [
+        (STATUS_OPEN, 'Open'),
+        (STATUS_IN_PROGRESS, 'In Progress'),
+        (STATUS_COMPLETED, 'Completed'),
+        (STATUS_CANCELLED, 'Cancelled'),
+    ]
+
+    order_number = models.CharField(max_length=50, unique=True, verbose_name='Order Number')
+    bike_model = models.ForeignKey(BikeModel, on_delete=models.PROTECT, related_name='production_orders')
+    quantity = models.PositiveIntegerField(verbose_name='Total Units')
+    target_date = models.DateField(null=True, blank=True, verbose_name='Target Date')
+    notes = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_OPEN)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_orders')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Production Order'
+        verbose_name_plural = 'Production Orders'
+
+    def __str__(self):
+        return f'Order #{self.order_number} — {self.bike_model} ×{self.quantity}'
+
+    @property
+    def completed_units(self):
+        return self.units.filter(completed_at__isnull=False).count()
+
+    @property
+    def progress_pct(self):
+        if not self.quantity:
+            return 0
+        return min(100, round(self.completed_units / self.quantity * 100))
+
+    @property
+    def remaining(self):
+        return max(0, self.quantity - self.completed_units)
+
+
+class OrderUnit(models.Model):
+    order = models.ForeignKey(ProductionOrder, on_delete=models.CASCADE, related_name='units')
+    unit_number = models.PositiveIntegerField()
+    serial_number = models.CharField(max_length=100, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['unit_number']
+        unique_together = [['order', 'unit_number']]
+        verbose_name = 'Order Unit'
+        verbose_name_plural = 'Order Units'
+
+    def __str__(self):
+        return f'{self.order.order_number} — Unit #{self.unit_number}'
+
+    @property
+    def is_complete(self):
+        return self.completed_at is not None
+
+    @property
+    def total_actual_minutes(self):
+        from django.db.models import Sum
+        from assembly.models import StepExecution
+        return StepExecution.objects.filter(
+            session__order_unit=self
+        ).aggregate(total=Sum('actual_minutes'))['total'] or 0
+
+
 class AssemblyProcess(models.Model):
     bike_model = models.ForeignKey(BikeModel, on_delete=models.CASCADE, related_name='processes')
     name = models.CharField(max_length=150)
@@ -49,6 +123,9 @@ class AssemblySession(models.Model):
         (STATUS_PAUSED, 'Paused'),
     ]
 
+    order_unit = models.ForeignKey(
+        OrderUnit, on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions'
+    )
     bike_model = models.ForeignKey(BikeModel, on_delete=models.PROTECT)
     process = models.ForeignKey(AssemblyProcess, on_delete=models.PROTECT)
     order_number = models.CharField(max_length=50, blank=True, verbose_name='Assembly Order Number')

@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from .models import AssemblyProcess, AssemblyStep, AssemblySession, StepExecution
+from .models import AssemblyProcess, AssemblyStep, AssemblySession, StepExecution, ProductionOrder
 
 User = get_user_model()
 
@@ -45,3 +45,19 @@ class StepExecutionForm(forms.ModelForm):
         model = StepExecution
         fields = ['actual_minutes', 'notes']
         widgets = {'notes': forms.Textarea(attrs={'rows': 2})}
+
+
+class ProductionOrderForm(forms.ModelForm):
+    class Meta:
+        model = ProductionOrder
+        fields = ['order_number', 'bike_model', 'quantity', 'target_date', 'notes']
+        widgets = {
+            'notes': forms.Textarea(attrs={'rows': 2}),
+            'target_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+        labels = {
+            'order_number': 'Order Number',
+            'bike_model': 'Bike Model',
+            'quantity': 'Total Units',
+            'target_date': 'Target Date (optional)',
+        }

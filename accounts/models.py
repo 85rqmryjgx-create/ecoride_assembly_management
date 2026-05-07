@@ -27,9 +27,18 @@ class User(AbstractUser):
     def is_supervisor(self):
         return self.role == self.ROLE_SUPERVISOR
 
+    salary_monthly = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Monthly Salary (Kr)')
+    must_change_password = models.BooleanField(default=False)
+
     @property
     def is_lead_or_above(self):
         return self.role in [self.ROLE_TEAM_LEAD, self.ROLE_SUPERVISOR]
+
+    @property
+    def hourly_rate(self):
+        if self.salary_monthly:
+            return round(float(self.salary_monthly) / 173, 2)
+        return None
 
     def __str__(self):
         return f'{self.get_full_name() or self.username} ({self.get_role_display()})'

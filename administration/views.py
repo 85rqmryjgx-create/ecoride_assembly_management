@@ -44,8 +44,10 @@ class UserCreateView(AdminRequiredMixin, View):
     def post(self, request):
         form = UserCreateForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            messages.success(request, f'User "{user.username}" created successfully.')
+            user = form.save(commit=False)
+            user.must_change_password = True
+            user.save()
+            messages.success(request, f'User "{user.username}" created. They will be prompted to set their password and salary on first login.')
             return redirect('administration:user_list')
         return render(request, 'administration/user_form.html', {'form': form, 'title': 'Create User'})
 

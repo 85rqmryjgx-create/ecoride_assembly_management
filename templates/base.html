@@ -43,6 +43,10 @@
       <span class="nav-icon"><i class="bi bi-wrench-adjustable"></i></span>
       <span>Assembly</span>
     </a>
+    <a href="{% url 'assembly:order_list' %}" class="nav-item {% if 'orders' in request.path %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-clipboard2-check"></i></span>
+      <span>Orders</span>
+    </a>
     <a href="{% url 'defects:list' %}" class="nav-item {% if request.resolver_match.app_name == 'defects' %}active{% endif %}">
       <span class="nav-icon"><i class="bi bi-shield-exclamation"></i></span>
       <span>Issues</span>

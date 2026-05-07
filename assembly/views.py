@@ -6,8 +6,8 @@ from django.contrib import messages
 from django.utils import timezone
 from django.db import models
 from django.db.models import Count, Sum
-from .models import AssemblyProcess, AssemblyStep, AssemblySession, StepExecution
-from .forms import ProcessForm, StepForm, SessionCreateForm, SessionEditForm, StepExecutionForm
+from .models import AssemblyProcess, AssemblyStep, AssemblySession, StepExecution, ProductionOrder, OrderUnit
+from .forms import ProcessForm, StepForm, SessionCreateForm, SessionEditForm, StepExecutionForm, ProductionOrderForm
 from bikes.models import BikeModel
 from defects.models import Defect
 from administration.models import AppSettings
@@ -310,3 +310,104 @@ class StepExecutionSaveView(LoginRequiredMixin, View):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'success': False, 'error': 'Invalid minutes'})
         return redirect('assembly:session_detail', pk=execution.session.pk)
+
+
+# ── Production Orders ────────────────────────────────────────────────────────
+
+class ProductionOrderListView(LoginRequiredMixin, ListView):
+    model = ProductionOrder
+    template_name = 'assembly/order_list.html'
+    context_object_name = 'orders'
+
+    def get_queryset(self):
+        return ProductionOrder.objects.select_related('bike_model', 'created_by')
+
+
+class ProductionOrderCreateView(LeadRequiredMixin, View):
+    def get(self, request):
+        from django.shortcuts import render
+        form = ProductionOrderForm()
+        return render(request, 'assembly/order_form.html', {'form': form})
+
+    def post(self, request):
+        from django.shortcuts import render
+        form = ProductionOrderForm(request.POST)
+        if form.is_valid():
+            order = form.save(commit=False)
+            order.created_by = request.user
+            order.status = ProductionOrder.STATUS_OPEN
+            order.save()
+            for i in range(1, order.quantity + 1):
+                OrderUnit.objects.create(order=order, unit_number=i)
+            messages.success(request, f'Production order #{order.order_number} created with {order.quantity} units.')
+            return redirect('assembly:order_detail', pk=order.pk)
+        return render(request, 'assembly/order_form.html', {'form': form})
+
+
+class ProductionOrderDetailView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        from django.shortcuts import render
+        order = get_object_or_404(ProductionOrder, pk=pk)
+        units = order.units.prefetch_related('sessions__process', 'sessions__worker')
+        return render(request, 'assembly/order_detail.html', {
+            'order': order,
+            'units': units,
+        })
+
+
+class OrderUnitDetailView(LoginRequiredMixin, View):
+    def get(self, request, order_pk, unit_pk):
+        from django.shortcuts import render
+        order = get_object_or_404(ProductionOrder, pk=order_pk)
+        unit = get_object_or_404(OrderUnit, pk=unit_pk, order=order)
+        sessions = unit.sessions.select_related('process', 'worker').prefetch_related('step_executions__step')
+        available_processes = AssemblyProcess.objects.filter(
+            bike_model=order.bike_model, active=True
+        ).exclude(id__in=unit.sessions.values_list('process_id', flat=True))
+        from accounts.models import User
+        workers = User.objects.filter(is_active=True).order_by('first_name', 'username')
+        return render(request, 'assembly/unit_detail.html', {
+            'order': order,
+            'unit': unit,
+            'sessions': sessions,
+            'available_processes': available_processes,
+            'workers': workers,
+        })
+
+
+class OrderUnitAddSessionView(LeadRequiredMixin, View):
+    def post(self, request, order_pk, unit_pk):
+        order = get_object_or_404(ProductionOrder, pk=order_pk)
+        unit = get_object_or_404(OrderUnit, pk=unit_pk, order=order)
+        process_id = request.POST.get('process_id')
+        worker_id = request.POST.get('worker_id')
+        process = get_object_or_404(AssemblyProcess, pk=process_id, bike_model=order.bike_model)
+        from accounts.models import User
+        worker = get_object_or_404(User, pk=worker_id, is_active=True)
+        session = AssemblySession.objects.create(
+            order_unit=unit,
+            bike_model=order.bike_model,
+            process=process,
+            worker=worker,
+            order_number=order.order_number,
+        )
+        for step in process.steps.all():
+            StepExecution.objects.create(session=session, step=step)
+        if order.status == ProductionOrder.STATUS_OPEN:
+            order.status = ProductionOrder.STATUS_IN_PROGRESS
+            order.save()
+        messages.success(request, f'Session started for Unit #{unit.unit_number} — {process.name}.')
+        return redirect('assembly:unit_detail', order_pk=order.pk, unit_pk=unit.pk)
+
+
+class OrderUnitCompleteView(LeadRequiredMixin, View):
+    def post(self, request, order_pk, unit_pk):
+        order = get_object_or_404(ProductionOrder, pk=order_pk)
+        unit = get_object_or_404(OrderUnit, pk=unit_pk, order=order)
+        unit.completed_at = timezone.now()
+        unit.save()
+        if order.completed_units >= order.quantity:
+            order.status = ProductionOrder.STATUS_COMPLETED
+            order.save()
+        messages.success(request, f'Unit #{unit.unit_number} marked as completed.')
+        return redirect('assembly:order_detail', pk=order.pk)

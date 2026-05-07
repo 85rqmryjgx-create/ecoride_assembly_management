@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Complete Your Profile{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <div class="header-title">👤 Complete Your Profile</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:16px;padding:16px;background:var(--info-light,#eff6ff);border-left:4px solid var(--accent);">
+  <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Welcome to Ecoride Assembly!</div>
+  <div style="font-size:13px;color:var(--text-muted);">Before you begin, please set your personal password and optionally your monthly salary. This is required to complete your account setup.</div>
+</div>
+
+<div class="card" style="margin-bottom:16px;padding:14px;background:#fefce8;border-left:4px solid #ca8a04;">
+  <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px;">🔒 Privacy Notice</div>
+  <div style="font-size:12px;color:#78350f;">Your salary information is <strong>private and encrypted</strong>. It is never shown to other workers or leads. It is used exclusively as an anonymous data point to calculate the company's overall production cost per hour. No individual salary is visible in any report.</div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="form-group">
+    <label class="form-label">New Password <span style="color:var(--danger);">*</span></label>
+    <input type="password" name="new_password" class="form-control-app" placeholder="Minimum 8 characters" required minlength="8" autocomplete="new-password">
+    {% if errors.new_password %}<div style="color:var(--danger);font-size:12px;margin-top:4px;">{{ errors.new_password }}</div>{% endif %}
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Confirm Password <span style="color:var(--danger);">*</span></label>
+    <input type="password" name="confirm_password" class="form-control-app" placeholder="Repeat your password" required autocomplete="new-password">
+    {% if errors.confirm_password %}<div style="color:var(--danger);font-size:12px;margin-top:4px;">{{ errors.confirm_password }}</div>{% endif %}
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Monthly Salary — Kr/month (optional)</label>
+    <input type="number" name="salary_monthly" class="form-control-app" placeholder="e.g. 32000" min="1" step="0.01" value="{{ salary }}">
+    <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Based on 40h/week · 173h/month. Used only for anonymous cost calculations.</div>
+    {% if errors.salary_monthly %}<div style="color:var(--danger);font-size:12px;margin-top:4px;">{{ errors.salary_monthly }}</div>{% endif %}
+  </div>
+
+  <button type="submit" class="btn-app primary" style="margin-top:8px;">
+    <i class="bi bi-check-circle-fill"></i> Complete Setup
+  </button>
+</form>
+{% endblock %}

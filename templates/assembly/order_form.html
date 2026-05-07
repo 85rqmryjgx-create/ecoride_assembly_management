@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}New Production Order{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'assembly:order_list' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">New Production Order</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  <div class="form-group">
+    <label class="form-label">Order Number <span style="color:var(--danger);">*</span></label>
+    <input type="text" name="order_number" class="form-control-app" placeholder="e.g. OP-2026-001" required value="{{ form.order_number.value|default:'' }}">
+    {% if form.order_number.errors %}<div style="color:var(--danger);font-size:12px;margin-top:4px;">{{ form.order_number.errors.0 }}</div>{% endif %}
+  </div>
+  <div class="form-group">
+    <label class="form-label">Bike Model <span style="color:var(--danger);">*</span></label>
+    <select name="bike_model" class="form-control-app" required>
+      <option value="">Select bike model...</option>
+      {% for value, label in form.bike_model.field.choices %}
+        {% if value %}<option value="{{ value }}" {% if form.bike_model.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endif %}
+      {% endfor %}
+    </select>
+    {% if form.bike_model.errors %}<div style="color:var(--danger);font-size:12px;margin-top:4px;">{{ form.bike_model.errors.0 }}</div>{% endif %}
+  </div>
+  <div class="form-group">
+    <label class="form-label">Total Units <span style="color:var(--danger);">*</span></label>
+    <input type="number" name="quantity" class="form-control-app" placeholder="e.g. 30" required min="1" value="{{ form.quantity.value|default:'' }}">
+    {% if form.quantity.errors %}<div style="color:var(--danger);font-size:12px;margin-top:4px;">{{ form.quantity.errors.0 }}</div>{% endif %}
+  </div>
+  <div class="form-group">
+    <label class="form-label">Target Date (optional)</label>
+    <input type="date" name="target_date" class="form-control-app" value="{{ form.target_date.value|default:'' }}">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Notes (optional)</label>
+    <textarea name="notes" class="form-control-app textarea" rows="2" placeholder="Any notes about this order...">{{ form.notes.value|default:'' }}</textarea>
+  </div>
+  <button type="submit" class="btn-app primary">
+    <i class="bi bi-clipboard2-check"></i> Create Order
+  </button>
+</form>
+{% endblock %}

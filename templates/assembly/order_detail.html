@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Order {{ order.order_number }}{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <a href="{% url 'assembly:order_list' %}" class="back-btn"><i class="bi bi-chevron-left"></i></a>
+  <div class="header-title">{{ order.order_number }}</div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom:14px;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+    <div>
+      <div style="font-size:13px;color:var(--text-muted);">{{ order.bike_model }}</div>
+      {% if order.target_date %}<div style="font-size:12px;color:var(--text-muted);margin-top:2px;"><i class="bi bi-calendar3"></i> {{ order.target_date|date:"d/m/Y" }}</div>{% endif %}
+    </div>
+    <span class="badge-app {% if order.status == 'completed' %}green{% elif order.status == 'in_progress' %}yellow{% elif order.status == 'cancelled' %}gray{% else %}blue{% endif %}">
+      {{ order.get_status_display }}
+    </span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+    <div style="flex:1;height:10px;background:var(--bg);border-radius:5px;overflow:hidden;">
+      <div style="height:100%;width:{{ order.progress_pct }}%;background:{% if order.progress_pct == 100 %}var(--accent){% else %}var(--warning){% endif %};border-radius:5px;transition:width .3s;"></div>
+    </div>
+    <span style="font-size:13px;font-weight:700;">{{ order.completed_units }}/{{ order.quantity }}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;">
+    <div style="background:var(--bg);border-radius:10px;padding:10px 4px;">
+      <div style="font-size:18px;font-weight:800;">{{ order.quantity }}</div>
+      <div style="font-size:10px;color:var(--text-muted);">Total</div>
+    </div>
+    <div style="background:var(--bg);border-radius:10px;padding:10px 4px;">
+      <div style="font-size:18px;font-weight:800;color:var(--accent);">{{ order.completed_units }}</div>
+      <div style="font-size:10px;color:var(--text-muted);">Completed</div>
+    </div>
+    <div style="background:var(--bg);border-radius:10px;padding:10px 4px;">
+      <div style="font-size:18px;font-weight:800;color:var(--warning);">{{ order.remaining }}</div>
+      <div style="font-size:10px;color:var(--text-muted);">Remaining</div>
+    </div>
+  </div>
+</div>
+
+<div style="font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Units</div>
+
+{% for unit in units %}
+<a href="{% url 'assembly:unit_detail' order.pk unit.pk %}" style="text-decoration:none;">
+<div class="card" style="margin-bottom:8px;padding:12px 14px;">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="width:36px;height:36px;border-radius:50%;background:{% if unit.is_complete %}var(--accent-light){% else %}var(--bg){% endif %};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">
+      {% if unit.is_complete %}✅{% else %}🔧{% endif %}
+    </div>
+    <div style="flex:1;">
+      <div style="font-weight:700;font-size:14px;">Unit #{{ unit.unit_number }}
+        {% if unit.serial_number %}<span style="font-size:11px;color:var(--text-muted);font-weight:400;"> · {{ unit.serial_number }}</span>{% endif %}
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);">
+        {% with s_count=unit.sessions.count %}
+          {{ s_count }} process{{ s_count|pluralize:"es" }}
+        {% endwith %}
+        {% if unit.is_complete %} · {{ unit.completed_at|date:"d/m H:i" }}{% endif %}
+      </div>
+    </div>
+    <i class="bi bi-chevron-right" style="color:var(--text-muted);"></i>
+  </div>
+</div>
+</a>
+{% endfor %}
+{% endblock %}
