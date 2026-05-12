@@ -161,8 +161,22 @@ class AssemblySession(models.Model):
 
 
 class StepExecution(models.Model):
+    STATUS_PENDING = 'pending'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_COMPLETED = 'completed'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_IN_PROGRESS, 'In Progress'),
+        (STATUS_COMPLETED, 'Completed'),
+    ]
+
     session = models.ForeignKey(AssemblySession, on_delete=models.CASCADE, related_name='step_executions')
     step = models.ForeignKey(AssemblyStep, on_delete=models.PROTECT)
+    workers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='assigned_steps'
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     actual_minutes = models.PositiveIntegerField(null=True, blank=True)

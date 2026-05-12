@@ -27,4 +27,7 @@ urlpatterns = [
     path('orders/<int:order_pk>/units/<int:unit_pk>/', views.OrderUnitDetailView.as_view(), name='unit_detail'),
     path('orders/<int:order_pk>/units/<int:unit_pk>/add-session/', views.OrderUnitAddSessionView.as_view(), name='unit_add_session'),
     path('orders/<int:order_pk>/units/<int:unit_pk>/complete/', views.OrderUnitCompleteView.as_view(), name='unit_complete'),
+    path('map/', views.AssemblyMapView.as_view(), name='map'),
+    path('executions/<int:pk>/activate/', views.StepActivateView.as_view(), name='step_activate'),
+    path('executions/<int:pk>/assign/', views.StepAssignWorkersView.as_view(), name='step_assign'),
 ]

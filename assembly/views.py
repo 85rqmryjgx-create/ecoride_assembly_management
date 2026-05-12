@@ -411,3 +411,55 @@ class OrderUnitCompleteView(LeadRequiredMixin, View):
             order.save()
         messages.success(request, f'Unit #{unit.unit_number} marked as completed.')
         return redirect('assembly:order_detail', pk=order.pk)
+
+
+# ── Assembly Map ─────────────────────────────────────────────────────────────
+
+class AssemblyMapView(LeadRequiredMixin, View):
+    def get(self, request):
+        from django.shortcuts import render
+        from accounts.models import User
+        sessions = AssemblySession.objects.filter(
+            status=AssemblySession.STATUS_IN_PROGRESS
+        ).select_related('bike_model', 'process', 'worker').prefetch_related(
+            'step_executions__step',
+            'step_executions__workers',
+        ).order_by('started_at')
+        workers = User.objects.filter(is_active=True).order_by('first_name', 'username')
+        return render(request, 'assembly/map.html', {
+            'sessions': sessions,
+            'workers': workers,
+        })
+
+
+class StepActivateView(LeadRequiredMixin, View):
+    def post(self, request, pk):
+        from django.http import JsonResponse
+        execution = get_object_or_404(StepExecution, pk=pk)
+        action = request.POST.get('action')
+        if action == 'activate':
+            execution.status = StepExecution.STATUS_IN_PROGRESS
+            execution.started_at = timezone.now()
+            execution.save()
+        elif action == 'complete':
+            execution.status = StepExecution.STATUS_COMPLETED
+            execution.finished_at = timezone.now()
+            execution.save()
+        elif action == 'reset':
+            execution.status = StepExecution.STATUS_PENDING
+            execution.started_at = None
+            execution.finished_at = None
+            execution.save()
+        return JsonResponse({'success': True, 'status': execution.status})
+
+
+class StepAssignWorkersView(LeadRequiredMixin, View):
+    def post(self, request, pk):
+        from django.http import JsonResponse
+        from accounts.models import User
+        execution = get_object_or_404(StepExecution, pk=pk)
+        worker_ids = request.POST.getlist('worker_ids')
+        workers = User.objects.filter(pk__in=worker_ids, is_active=True)
+        execution.workers.set(workers)
+        worker_names = [w.get_full_name() or w.username for w in workers]
+        return JsonResponse({'success': True, 'workers': worker_names})

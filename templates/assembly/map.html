@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}Assembly Map{% endblock %}
+
+{% block header %}
+<div class="app-header">
+  <div class="header-title"><i class="bi bi-diagram-3"></i> Assembly Map</div>
+  <div class="header-action">
+    <button onclick="location.reload()" class="btn-sm-app" style="border:none;cursor:pointer;">
+      <i class="bi bi-arrow-clockwise"></i>
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if not sessions %}
+<div class="empty-state">
+  <div class="empty-icon"><i class="bi bi-diagram-3" style="font-size:48px;"></i></div>
+  <div class="empty-title">No active sessions</div>
+  <div class="empty-sub">All assemblies are completed or paused.</div>
+</div>
+{% endif %}
+
+{% for session in sessions %}
+<div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">
+  <div style="padding:12px 14px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <span style="font-weight:700;font-size:14px;">{{ session.bike_model }}</span>
+      {% if session.order_number %}<span style="font-size:12px;color:var(--text-muted);"> · {{ session.order_number }}</span>{% endif %}
+    </div>
+    <a href="{% url 'assembly:session_detail' session.pk %}" style="font-size:12px;color:var(--accent);text-decoration:none;">Detail →</a>
+  </div>
+
+  <div style="padding:12px 14px;overflow-x:auto;">
+    <div style="display:flex;gap:8px;min-width:max-content;">
+      {% for ex in session.step_executions.all %}
+      <div class="step-card" data-ex-id="{{ ex.pk }}"
+           style="min-width:140px;max-width:160px;border-radius:10px;border:2px solid {% if ex.status == 'completed' %}var(--accent){% elif ex.status == 'in_progress' %}var(--warning){% else %}var(--border){% endif %};padding:10px;background:{% if ex.status == 'completed' %}var(--accent-light){% elif ex.status == 'in_progress' %}var(--warning-light){% else %}var(--bg){% endif %};">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:4px;">{{ ex.step.order }}. {{ ex.step.name|truncatechars:22 }}</div>
+        <div class="step-status-badge" style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:6px;
+          background:{% if ex.status == 'completed' %}var(--accent){% elif ex.status == 'in_progress' %}#f59e0b{% else %}var(--border){% endif %};
+          color:{% if ex.status == 'pending' %}var(--text-muted){% else %}#fff{% endif %};">
+          {% if ex.status == 'completed' %}✅ Done{% elif ex.status == 'in_progress' %}🔧 Active{% else %}⬜ Pending{% endif %}
+        </div>
+        <div class="step-workers" style="min-height:20px;margin-bottom:8px;">
+          {% for w in ex.workers.all %}
+          <div style="font-size:11px;color:var(--text);background:var(--bg-card);border-radius:4px;padding:2px 5px;margin-bottom:2px;display:flex;align-items:center;gap:4px;">
+            <i class="bi bi-person-fill" style="font-size:10px;"></i> {{ w.get_full_name|default:w.username|truncatechars:16 }}
+          </div>
+          {% empty %}
+          <div style="font-size:11px;color:var(--text-muted);">No worker assigned</div>
+          {% endfor %}
+        </div>
+        {% if ex.actual_minutes %}<div style="font-size:10px;color:var(--text-muted);">⏱ {{ ex.actual_minutes }} min</div>{% endif %}
+        <button onclick="openStepPanel({{ ex.pk }}, '{{ ex.step.name|escapejs }}', '{{ ex.status }}')"
+                style="width:100%;margin-top:6px;padding:4px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:11px;cursor:pointer;">
+          <i class="bi bi-pencil"></i> Manage
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Step Management Panel -->
+<div id="step-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:2px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:1000;max-height:80vh;overflow-y:auto;box-shadow:0 -4px 24px rgba(0,0,0,0.15);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <span id="panel-title" style="font-weight:700;font-size:15px;"></span>
+    <button onclick="closePanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);">✕</button>
+  </div>
+
+  <div style="margin-bottom:14px;">
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;">Status</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="setStatus('activate')" id="btn-activate"
+              style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--warning-light);color:#92400e;font-size:13px;font-weight:700;cursor:pointer;">
+        🔧 Activate
+      </button>
+      <button onclick="setStatus('complete')" id="btn-complete"
+              style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--accent-light);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;">
+        ✅ Complete
+      </button>
+      <button onclick="setStatus('reset')" id="btn-reset"
+              style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text-muted);font-size:13px;cursor:pointer;">
+        ↺ Reset
+      </button>
+    </div>
+  </div>
+
+  <div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;">Assign Workers</div>
+    <div id="worker-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+      {% for w in workers %}
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);cursor:pointer;">
+        <input type="checkbox" class="worker-checkbox" value="{{ w.pk }}" style="width:16px;height:16px;accent-color:var(--accent);">
+        <span style="font-size:13px;">{{ w.get_full_name|default:w.username }}</span>
+        <span style="font-size:11px;color:var(--text-muted);margin-left:auto;">{{ w.get_role_display }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <button onclick="saveWorkers()"
+            style="width:100%;padding:10px;border-radius:10px;background:var(--accent);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;">
+      <i class="bi bi-check-lg"></i> Save Workers
+    </button>
+  </div>
+</div>
+<div id="panel-overlay" onclick="closePanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;"></div>
+
+<script>
+let currentExId = null;
+
+function openStepPanel(exId, stepName, status) {
+  currentExId = exId;
+  document.getElementById('panel-title').textContent = stepName;
+  document.getElementById('step-panel').style.display = 'block';
+  document.getElementById('panel-overlay').style.display = 'block';
+
+  // Load current workers for this step
+  const stepCard = document.querySelector('[data-ex-id="' + exId + '"]');
+  const workerEls = stepCard.querySelectorAll('.step-workers [style*="bi-person-fill"]');
+  const assignedNames = Array.from(workerEls).map(el => el.parentElement.textContent.trim());
+
+  // Reset checkboxes
+  document.querySelectorAll('.worker-checkbox').forEach(cb => {
+    cb.checked = false;
+  });
+
+  // Fetch current assigned workers via inline data
+  fetch('/assembly/executions/' + exId + '/assign/', {
+    method: 'GET',
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  }).catch(() => {});
+}
+
+function closePanel() {
+  document.getElementById('step-panel').style.display = 'none';
+  document.getElementById('panel-overlay').style.display = 'none';
+  currentExId = null;
+}
+
+function getCsrf() {
+  return document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+
+function setStatus(action) {
+  if (!currentExId) return;
+  fetch('/assembly/executions/' + currentExId + '/activate/', {
+    method: 'POST',
+    headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'action=' + action
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      closePanel();
+      location.reload();
+    }
+  });
+}
+
+function saveWorkers() {
+  if (!currentExId) return;
+  const ids = Array.from(document.querySelectorAll('.worker-checkbox:checked')).map(cb => cb.value);
+  const params = new URLSearchParams();
+  ids.forEach(id => params.append('worker_ids', id));
+
+  fetch('/assembly/executions/' + currentExId + '/assign/', {
+    method: 'POST',
+    headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/x-www-form-urlencoded'},
+    body: params.toString()
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      closePanel();
+      location.reload();
+    }
+  });
+}
+</script>
+{% endblock %}

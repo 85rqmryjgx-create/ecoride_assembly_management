@@ -47,6 +47,10 @@
       <span class="nav-icon"><i class="bi bi-clipboard2-check"></i></span>
       <span>Orders</span>
     </a>
+    <a href="{% url 'assembly:map' %}" class="nav-item {% if request.resolver_match.url_name == 'map' %}active{% endif %}">
+      <span class="nav-icon"><i class="bi bi-diagram-3"></i></span>
+      <span>Map</span>
+    </a>
     <a href="{% url 'defects:list' %}" class="nav-item {% if request.resolver_match.app_name == 'defects' %}active{% endif %}">
       <span class="nav-icon"><i class="bi bi-shield-exclamation"></i></span>
       <span>Issues</span>
