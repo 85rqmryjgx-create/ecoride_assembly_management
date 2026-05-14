@@ -128,7 +128,7 @@
 <div class="card">
   {% for s in sessions_active %}
   <a href="{% url 'assembly:session_detail' s.pk %}" class="list-row">
-    <div class="row-icon" style="background:#F0F0F0;">🔧</div>
+    <div class="row-icon">🔧</div>
     <div class="row-body">
       <div class="row-title">
         {{ s.bike_model }}
